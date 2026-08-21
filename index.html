@@ -131,8 +131,6 @@
   .gcard .zh{font-size:13px;}
   .gcard .acts{margin-top:8px;display:flex;gap:6px;justify-content:center;}
 
-  .shapecard{display:flex;gap:14px;align-items:center;}
-  .shapecard .big{font-size:46px;}
   .quizopt{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
   .quizopt button{flex:1;min-width:90px;background:var(--green-soft);border:1px solid var(--line);border-radius:12px;padding:10px;font-weight:700;color:var(--ink);}
 
@@ -333,18 +331,105 @@ var WORDS = (typeof EN_WORDS !== 'undefined') ? EN_WORDS : [];
 var PHRASES = (typeof EN_PHRASES !== 'undefined') ? EN_PHRASES : [];
 var PHONICS = (typeof EN_PHONICS !== 'undefined') ? EN_PHONICS : [];
 
-const SHAPES = [
- {e:"⭕",n:"圆形",d:"没有角的封闭曲线图形，圆圆的。"},
- {e:"🟦",n:"正方形",d:"四条边相等，四个角都是直角。"},
- {e:"▭",n:"长方形",d:"对边相等，四个角都是直角。"},
- {e:"🔺",n:"三角形",d:"由三条边围成，有三个角。"},
- {e:"🟣",n:"平行四边形",d:"对边平行且相等，容易变形。"},
- {e:"🔻",n:"梯形",d:"只有一组对边平行的四边形。"},
- {e:"🛢️",n:"圆柱",d:"上下两个圆面一样大，侧面展开是长方形。"},
- {e:"⚪",n:"球",d:"圆圆的一团，可以向任何方向滚动。"},
- {e:"🧊",n:"正方体",d:"六个面都是完全相同的正方形。"},
- {e:"📦",n:"长方体",d:"六个长方形（或部分正方形）面。"}
-];
+/* ============ 计算小达人 题库（按年级×分类）============ */
+/* 来源：阳光同学《计算小达人》人教版；二年级上册已录入，其他年级待补充 */
+const CALC_GNAME={1:'一年级',2:'二年级',3:'三年级',4:'四年级',5:'五年级',6:'六年级'};
+const CALC_BANK={
+  1:{}, // 占位
+  2:{
+    '100以内加减法':[
+      {q:'50+17',a:67},{q:'40+44',a:84},{q:'33+44',a:77},{q:'5+18',a:23},
+      {q:'30+26',a:56},{q:'22+55',a:77},{q:'76+20',a:96},{q:'35+40',a:75},
+      {q:'10+29',a:39},{q:'8+63',a:71},{q:'3+66',a:69},{q:'13+80',a:93},
+      {q:'8+82',a:90},{q:'35+7',a:42},{q:'57+7',a:64},{q:'59+20',a:79},
+      {q:'44+6',a:50},{q:'6+35',a:41},{q:'9+22',a:31},{q:'4+36',a:40},
+      {q:'29+7',a:36},{q:'6+48',a:54},{q:'40+20',a:60},{q:'59+9',a:68},
+      {q:'62-26',a:36},{q:'58+12',a:70},{q:'53-46',a:7},{q:'19+44',a:63},
+      {q:'80-68',a:12},{q:'41+39',a:80},{q:'53-25',a:28},{q:'72-28',a:44},
+      {q:'27+43',a:70},{q:'26+18',a:44},{q:'56+28',a:84},{q:'90-73',a:17},
+      {q:'42-36',a:6},{q:'19+27',a:46},{q:'63-14',a:49},{q:'58-9',a:49},
+      {q:'65-22',a:43},{q:'25+57',a:82},{q:'50-18',a:32},{q:'17+13',a:30},
+      {q:'76-7',a:69},{q:'16+40',a:56},{q:'4+56',a:60},{q:'23+14',a:37},
+      {q:'85-25',a:60},{q:'38+26',a:64},{q:'66-40',a:26},{q:'57+24',a:81},
+      {q:'68+28',a:96},{q:'81-77',a:4},{q:'76-51',a:25},{q:'38+36',a:74},
+      {q:'43-26',a:17},{q:'70-34',a:36},{q:'92-66',a:26},{q:'39+51',a:90},
+      {q:'57+37',a:94},{q:'68-37',a:31},{q:'83-78',a:5}
+    ],
+    '乘法口诀(1-6)':[
+      {q:'2×1',a:2},{q:'1×1',a:1},{q:'4×2',a:8},{q:'4×5',a:20},
+      {q:'4×3',a:12},{q:'5×2',a:10},{q:'5×4',a:20},{q:'5×5',a:25},
+      {q:'3×5',a:15},{q:'1×5',a:5},{q:'2×5',a:10},{q:'2×3',a:6},
+      {q:'3×1',a:3},{q:'3×2',a:6},{q:'1×4',a:4},{q:'2×4',a:8},
+      {q:'4×1',a:4},{q:'4×4',a:16},{q:'5×1',a:5},{q:'3×3',a:9},
+      {q:'1×3',a:3},{q:'3×4',a:12},{q:'2×2',a:4},{q:'2×6',a:12},
+      {q:'3×6',a:18},{q:'1×4',a:4},{q:'1×6',a:6},{q:'5×3',a:15},
+      {q:'4×5',a:20},{q:'5×6',a:30},{q:'6×1',a:6},{q:'6×2',a:12},
+      {q:'6×3',a:18},{q:'6×4',a:24},{q:'6×5',a:30},{q:'6×6',a:36}
+    ],
+    '除法口诀':[
+      {q:'10÷2',a:5},{q:'4÷1',a:4},{q:'12÷4',a:3},{q:'25÷5',a:5},
+      {q:'5÷5',a:1},{q:'16÷4',a:4},{q:'6÷3',a:2},{q:'30÷6',a:5},
+      {q:'8÷2',a:4},{q:'18÷3',a:6},{q:'24÷4',a:6},{q:'20÷4',a:5},
+      {q:'36÷6',a:6},{q:'12÷6',a:2},{q:'15÷3',a:5},{q:'6÷1',a:6},
+      {q:'5÷1',a:5},{q:'10÷5',a:2},{q:'4÷2',a:2},{q:'9÷3',a:3},
+      {q:'18÷6',a:3},{q:'30÷5',a:6},{q:'24÷6',a:4},{q:'3÷3',a:1},
+      {q:'2÷2',a:1},{q:'12÷2',a:6},{q:'8÷4',a:2},{q:'15÷5',a:3}
+    ],
+    '乘加乘减混合':[
+      {q:'5×4-4',a:16},{q:'3×5-3',a:12},{q:'3×1-1',a:2},
+      {q:'1×3-3',a:0},{q:'4×4+20',a:36},{q:'4×2+12',a:20},
+      {q:'4×3+3',a:15},{q:'1×2+4',a:6},{q:'2×4-2',a:6},
+      {q:'3×5-15',a:0},{q:'2×3+2',a:8},{q:'4×4+15',a:31},
+      {q:'3×4-7',a:5},{q:'5×3+10',a:25},{q:'3×5-4',a:11},
+      {q:'2×6+30',a:42},{q:'2×6-6',a:6},{q:'2×4-4',a:4},
+      {q:'2×6-10',a:2},{q:'5×5+12',a:37},{q:'5×5+7',a:32},
+      {q:'2×1+8',a:10},{q:'1×6+12',a:18},{q:'5×6-5',a:25}
+    ],
+    '7-9乘法口诀':[
+      {q:'7×1',a:7},{q:'7×2',a:14},{q:'7×3',a:21},{q:'7×4',a:28},
+      {q:'7×5',a:35},{q:'7×6',a:42},{q:'7×7',a:49},{q:'7×8',a:56},
+      {q:'7×9',a:63},{q:'8×1',a:8},{q:'8×2',a:16},{q:'8×3',a:24},
+      {q:'8×4',a:32},{q:'8×5',a:40},{q:'8×6',a:48},{q:'8×7',a:56},
+      {q:'8×8',a:64},{q:'8×9',a:72},{q:'9×1',a:9},{q:'9×2',a:18},
+      {q:'9×3',a:27},{q:'9×4',a:36},{q:'9×5',a:45},{q:'9×6',a:54},
+      {q:'9×7',a:63},{q:'9×8',a:72},{q:'9×9',a:81}
+    ],
+    '综合练习':[
+      {q:'24÷6',a:4},{q:'8×2',a:16},{q:'56-8',a:48},{q:'4×2',a:8},
+      {q:'7×3',a:21},{q:'35+7',a:42},{q:'12÷4',a:3},{q:'24÷4',a:6},
+      {q:'45÷5',a:9},{q:'9×4',a:36},{q:'38-20',a:18},{q:'3÷3',a:1},
+      {q:'16÷4',a:4},{q:'45-5',a:40},{q:'4÷4',a:1},{q:'54÷9',a:6},
+      {q:'9×9',a:81},{q:'18÷3',a:6},{q:'21÷3',a:7},{q:'9×3',a:27},
+      {q:'36÷9',a:4},{q:'20÷5',a:4},{q:'48+20',a:68},{q:'30÷5',a:6},
+      {q:'9×8',a:72},{q:'25÷5',a:5},{q:'10÷2',a:5},{q:'42÷7',a:6},
+      {q:'81÷9',a:9},{q:'47-18',a:29},{q:'47+16',a:63},{q:'93-76',a:17}
+    ]
+  },
+  3:{},4:{},5:{},6:{} // 占位：待补充
+};
+
+/* ============ 应用题 题库（按年级）============ */
+const APP_BANK={
+  1:[],
+  2:[
+    {q:'小红有 3 本书，小明比小红多 2 本，小明有几本书？',ans:5,a:'3+2=5（本）'},
+    {q:'每只小兔吃 4 根萝卜，5 只小兔一共要吃多少根萝卜？',ans:20,a:'4×5=20（根）'},
+    {q:'妈妈买了 18 个苹果，平均分给 3 个小朋友，每人分几个？',ans:6,a:'18÷3=6（个）'},
+    {q:'一盒铅笔有 5 支，4 盒一共有多少支铅笔？',ans:20,a:'5×4=20（支）'},
+    {q:'学校操场一圈 200 米，小明跑了 2 圈，一共跑了多少米？',ans:400,a:'200×2=400（米）'},
+    {q:'把 12 个桃子平均放在 4 个盘子里，每盘放几个？',ans:3,a:'12÷4=3（个）'},
+    {q:'每行种 6 棵树，种了 3 行，一共种了多少棵树？',ans:18,a:'6×3=18（棵）'},
+    {q:'一根绳子长 35 米，用去 17 米，还剩多少米？',ans:18,a:'35-17=18（米）'},
+    {q:'公交车上有 28 人，到站下车 9 人，又上来 6 人，现在车上有几人？',ans:25,a:'28-9+6=25（人）'},
+    {q:'一本书 8 元，小红买了 3 本，付了 30 元，应找回多少元？',ans:6,a:'30-8×3=6（元）'},
+    {q:'二（1）班有男生 18 人，女生 16 人，每人发 1 本练习本，需要多少本？',ans:34,a:'18+16=34（本）'},
+    {q:'一只青蛙每天吃 7 只害虫，5 天吃多少只害虫？',ans:35,a:'7×5=35（只）'},
+    {q:'一根彩带长 24 米，剪成相等的 4 段，每段长多少米？',ans:6,a:'24÷4=6（米）'},
+    {q:'小红有 20 元钱，买文具用去 8 元，妈妈又给她 5 元，现在她有多少元？',ans:17,a:'20-8+5=17（元）'},
+    {q:'5 个同学每人折 6 颗星星，他们一共折了多少颗？',ans:30,a:'5×6=30（颗）'}
+  ],
+  3:[],4:[],5:[],6:[] // 占位：待补充
+};
 
 const SPORTS = {
   outdoor:["跳绳","拍皮球","慢跑","骑车","踢毽子","丢沙包","打羽毛球"],
@@ -869,31 +954,100 @@ function cnBody(tab){
 /* 三、数学思维 */
 VIEWS.math=function(){
   let tab=load('mathTab','calc');
+  // 老用户迁移：mul/shape 升级为 calc2/app
+  if(tab==='mul'){tab='calc2';save('mathTab',tab);}
+  if(tab==='shape'){tab='app';save('mathTab',tab);}
   let h='<div class="tabs">'+
     '<button class="tab '+(tab==='calc'?'active':'')+'" data-act="math-tab" data-tab="calc">100以内加减法</button>'+
-    '<button class="tab '+(tab==='mul'?'active':'')+'" data-act="math-tab" data-tab="mul">乘法口算</button>'+
-    '<button class="tab '+(tab==='shape'?'active':'')+'" data-act="math-tab" data-tab="shape">空间图形学习</button>'+
+    '<button class="tab '+(tab==='calc2'?'active':'')+'" data-act="math-tab" data-tab="calc2">计算小达人</button>'+
+    '<button class="tab '+(tab==='app'?'active':'')+'" data-act="math-tab" data-tab="app">应用题</button>'+
     '</div>'+
     '<div class="statcard"><div class="statrow"><span class="sd">✔ 累计答对 '+mathRight+' 道</span>'+
-    '<span class="su">口算和图形小测验都算哦，答对得 1 颗金豆</span></div></div>'+
+    '<span class="su">答对得 1 颗金豆，应用题答对得 2 颗金豆</span></div></div>'+
     '<div id="mathBody">'+mathBody(tab)+'</div>';
   return h;
 };
 function mathBody(tab){
-  if(tab==='shape'){
-    let h='<div class="muted" style="margin-bottom:8px">认识常见图形，下面还有小测验！</div>';
-    SHAPES.forEach(s=>{h+='<div class="item shapecard"><div class="big">'+s.e+'</div><div><div class="t" style="font-weight:800">'+esc(s.n)+'</div><div class="body" style="margin-top:4px">'+esc(s.d)+'</div></div></div>';});
-    h+='<div class="card"><h3>小测验：这是什么图形？</h3><div id="shapeQuiz"></div></div>';
+  // ===== 应用题 =====
+  if(tab==='app'){
+    const sg=parseInt(load('appGrade','2'),10)||2;
+    const list=(APP_BANK[sg]||[]);
+    const cnt={};for(let g=1;g<=6;g++){cnt[g]=(APP_BANK[g]||[]).length;}
+    let h='<div class="muted" style="margin-bottom:8px">读一读题目，列式计算（或口算），输入答案。答对得 <b>2 颗金豆</b>！</div>';
+    h+='<div class="chips" style="margin-bottom:10px">'+
+      '<span class="muted" style="font-size:13px;margin-right:4px">年级：</span>';
+    for(let g=1;g<=6;g++){
+      h+='<button class="chip '+(sg===g?'on':'')+'" data-act="app-cg" data-g="'+g+'">'+CALC_GNAME[g]+' '+(cnt[g]||0)+'</button>';
+    }
+    h+='</div>';
+    if(!list.length){
+      h+='<div class="card" style="text-align:center;padding:30px 14px">'+
+        '<div style="font-size:46px">📝</div>'+
+        '<div style="font-weight:800;margin-top:8px">'+CALC_GNAME[sg]+' 应用题题库建设中…</div>'+
+        '<div class="muted" style="margin-top:6px">暂时先用其他年级练习吧～</div></div>';
+      return h;
+    }
+    // 随机抽一题
+    const qi=Math.floor(Math.random()*list.length);
+    const q=list[qi];
+    save('curAppQ',{i:qi,g:sg});
+    h+='<div class="card mathbox"><h3>应用题</h3>'+
+      '<div style="font-size:15px;line-height:1.7;padding:6px 4px">'+esc(q.q)+'</div>'+
+      '<div class="muted" style="margin-top:6px">提示：列式 → 计算 → 输入答案（纯数字）</div>'+
+      '<div style="margin-top:8px"><input id="appans" inputmode="numeric" placeholder="答案" /></div>'+
+      '<div style="margin-top:8px"><button class="btn" data-act="check-app">检查答案（+2 金豆）</button></div>'+
+      '<div class="feedback" id="appfb"></div></div>'+
+      '<div style="text-align:center;margin-top:10px"><button class="btn ghost" data-act="app-next">换一题</button></div>'+
+      '<div class="muted center" style="margin-top:8px">'+CALC_GNAME[sg]+' 共 '+list.length+' 道应用题</div>';
     return h;
   }
-  // 生成一道题
-  let q;
-  if(tab==='calc'){
-    let a=Math.floor(Math.random()*100),b=Math.floor(Math.random()*100);
-    if(Math.random()<0.5){q={a,b,op:'+',ans:a+b};}else{ if(b>a){[a,b]=[b,a];} q={a,b,op:'-',ans:a-b};}
-  }else{
-    let a=Math.floor(Math.random()*9)+1,b=Math.floor(Math.random()*9)+1;q={a,b,op:'×',ans:a*b};
+  // ===== 计算小达人 =====
+  if(tab==='calc2'){
+    const sg=parseInt(load('calcGrade','2'),10)||2;
+    const bank=CALC_BANK[sg]||{};
+    const cats=Object.keys(bank);
+    let curCat=load('calcCat','');
+    if(!cats.includes(curCat))curCat=cats[0]||'';
+    save('calcCat',curCat);
+    const cnt={};for(let g=1;g<=6;g++){let c=0;Object.values(CALC_BANK[g]||{}).forEach(a=>c+=a.length);cnt[g]=c;}
+    let h='<div class="muted" style="margin-bottom:8px">《计算小达人》阳光同学出品，按年级练习，答对得 1 颗金豆。</div>';
+    h+='<div class="chips" style="margin-bottom:8px">'+
+      '<span class="muted" style="font-size:13px;margin-right:4px">年级：</span>';
+    for(let g=1;g<=6;g++){
+      h+='<button class="chip '+(sg===g?'on':'')+'" data-act="calc-cg" data-g="'+g+'">'+CALC_GNAME[g]+' '+(cnt[g]||0)+'</button>';
+    }
+    h+='</div>';
+    if(!cats.length){
+      h+='<div class="card" style="text-align:center;padding:30px 14px">'+
+        '<div style="font-size:46px">📚</div>'+
+        '<div style="font-weight:800;margin-top:8px">'+CALC_GNAME[sg]+' 题库建设中…</div>'+
+        '<div class="muted" style="margin-top:6px">暂时先用二年级或「100以内加减法」练习吧～</div></div>';
+      return h;
+    }
+    h+='<div class="chips" style="margin-bottom:10px">'+
+      '<span class="muted" style="font-size:13px;margin-right:4px">分类：</span>';
+    cats.forEach(function(c){
+      h+='<button class="chip '+(c===curCat?'on':'')+'" data-act="calc-cc" data-c="'+esc(c)+'">'+esc(c)+' ('+bank[c].length+')</button>';
+    });
+    h+='</div>';
+    // 抽题
+    const list=bank[curCat]||[];
+    const qi=Math.floor(Math.random()*list.length);
+    const q=list[qi];
+    save('curQ',{a:q.q,b:'',op:'',ans:q.a,t:curCat});
+    h+='<div class="card mathbox"><h3>来算一算（答对得 1 颗金豆）</h3>'+
+      '<div class="q">'+esc(q.q)+' = ?</div>'+
+      '<div><input id="ans" inputmode="numeric" placeholder="?" /></div>'+
+      '<div><button class="btn" data-act="check-math">检查一下</button> '+
+      '<button class="btn ghost" data-act="calc-next">换一题</button></div>'+
+      '<div class="feedback" id="mathfb"></div></div>'+
+      '<div class="muted center">'+CALC_GNAME[sg]+' · '+esc(curCat)+' · 共 '+list.length+' 道，已答对 '+mathRight+' 道</div>';
+    return h;
   }
+  // ===== 100以内加减法（保留原逻辑）=====
+  let q;
+  let a=Math.floor(Math.random()*100),b=Math.floor(Math.random()*100);
+  if(Math.random()<0.5){q={a,b,op:'+',ans:a+b};}else{ if(b>a){[a,b]=[b,a];} q={a,b,op:'-',ans:a-b};}
   save('curQ',q);
   let h='<div class="card mathbox"><h3>来算一算（答对得 1 颗金豆）</h3>'+
     '<div class="q">'+q.a+' '+q.op+' '+q.b+' = ?</div>'+
@@ -1376,12 +1530,27 @@ document.addEventListener('click',function(e){
   else if(act==='hz-back'){ hzState.group=''; save('hzState',hzState); go('chinese'); }
   else if(act==='hz-search'){ hzState.q=(document.getElementById('hzsearch').value||'').trim(); save('hzState',hzState); go('chinese'); }
   else if(act==='hz-more'){ hzState.limit=(hzState.limit||300)+300; save('hzState',hzState); go('chinese'); }
-  else if(act==='math-tab'){save('mathTab',el.dataset.tab);go('math');if(el.dataset.tab==='shape')renderShapeQuiz();}
+  else if(act==='math-tab'){save('mathTab',el.dataset.tab);go('math');}
+  else if(act==='calc-cg'){save('calcGrade',el.dataset.g);save('calcCat','');go('math');}
+  else if(act==='calc-cc'){save('calcCat',el.dataset.c);go('math');}
+  else if(act==='calc-next'){go('math');}
+  else if(act==='app-cg'){save('appGrade',el.dataset.g);go('math');}
+  else if(act==='app-next'){go('math');}
+  else if(act==='check-app'){
+    const qi=load('curAppQ',null);
+    const fb=document.getElementById('appfb');
+    const v=parseInt(document.getElementById('appans').value);
+    if(!qi){go('math');return;}
+    const q=APP_BANK[qi.g][qi.i];
+    if(v===q.ans){fb.textContent='✅ 答对啦！+2 金豆 · '+q.a;fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);addStars(2,'应用题答对','math');
+      setTimeout(()=>go('math'),1100);
+    }else{fb.textContent='❌ 再想想，答案是 '+q.ans+'（'+q.a+'）';fb.style.color='var(--green-deep)';}
+  }
   else if(act==='check-math'){
     const q=load('curQ',null);const v=parseInt(document.getElementById('ans').value);
     const fb=document.getElementById('mathfb');
     if(!q){go('math');return;}
-    if(v===q.ans){fb.textContent='✅ 答对啦！+1 金豆';fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);addStars(1,'口算答对','math');
+    if(v===q.ans){fb.textContent='✅ 答对啦！+1 金豆';fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);addStars(1,(q.t?('计算小达人·'+q.t):'口算答对'),'math');
       setTimeout(()=>go('math'),700);
     }else{fb.textContent='❌ 再想想，答案是 '+q.ans;fb.style.color='var(--green-deep)';}
   }
@@ -1490,25 +1659,7 @@ document.addEventListener('click',function(e){
   }
 });
 
-function renderShapeQuiz(){
-  const box=document.getElementById('shapeQuiz');
-  if(!box)return;
-  const s=SHAPES[Math.floor(Math.random()*SHAPES.length)];
-  const opts=[s.n];
-  while(opts.length<3){const r=SHAPES[Math.floor(Math.random()*SHAPES.length)].n;if(!opts.includes(r))opts.push(r);}
-  opts.sort(()=>Math.random()-0.5);
-  box.innerHTML='<div style="font-size:40px;text-align:center;margin:6px 0">'+s.e+'</div>'+
-    '<div class="quizopt">'+opts.map(o=>'<button data-shape="'+esc(o)+'" data-ans="'+esc(s.n)+'">'+esc(o)+'</button>').join('')+'</div>'+
-    '<div id="sqfb" class="center" style="margin-top:10px;font-weight:800"></div>';
-  box.querySelectorAll('button').forEach(b=>{
-    b.onclick=function(){
-      const fb=document.getElementById('sqfb');
-      if(b.dataset.shape===b.dataset.ans){fb.textContent='✅ 答对啦！+1 金豆';fb.style.color='var(--good)';addStars(1,'图形小测验','math');}
-      else{fb.textContent='❌ 正确答案是 '+b.dataset.ans;fb.style.color='var(--green-deep)';}
-      setTimeout(renderShapeQuiz,900);
-    };
-  });
-}
+function renderShapeQuiz(){return; /* 空间图形模块已下线，保留空函数以防历史引用 */ }
 
 /* ============ 翻页绘本阅读器（带语音朗读/跟读） ============ */
 let readerState=null;
