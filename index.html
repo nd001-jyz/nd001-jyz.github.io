@@ -245,6 +245,12 @@
   .statrow .st{color:var(--green-deep);}
   .statbar{height:8px;border-radius:6px;background:var(--green-soft);margin-top:8px;overflow:hidden;}
   .statbar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--green),var(--yellow));}
+  /* 负金豆 */
+  .pill.neg{background:#FBEAE7;color:#E06B5C;}
+  /* 成长历程 */
+  .gstat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;box-shadow:var(--shadow);text-align:center;}
+  .gstat .gn{font-weight:800;font-size:16px;color:var(--green-deep);}
+  .gstat .gl{font-size:11px;color:var(--muted);}
   /* ruby 拼音标注 */
   ruby{ruby-position:over;}
   ruby rt{font-size:13px;color:var(--muted);font-weight:400;letter-spacing:1px;}
@@ -260,7 +266,7 @@
         <div class="sub">小学生成长平台</div>
       </div>
     </div>
-    <div class="starbox">
+    <div class="starbox" data-act="bean-detail" style="cursor:pointer" title="点击查看金豆收支明细">
       <span>我的小金豆</span>
       <span class="num" id="sideStars"><i class="bean"></i> 0</span>
     </div>
@@ -277,7 +283,7 @@
       <button class="hamburger" id="hamburger">☰</button>
       <div class="title" id="pageTitle">奶豆加油站</div>
       <div class="spacer"></div>
-      <div class="topstar" id="topStars"><i class="bean"></i> 0</div>
+      <div class="topstar" id="topStars" data-act="bean-detail" style="cursor:pointer" title="点击查看金豆收支明细"><i class="bean"></i> 0</div>
     </div>
     <div class="content" id="content"></div>
   </div>
@@ -479,6 +485,14 @@ let stars = load('stars',0);
 
 /* ============ 每日计划：模板 + 按日期存储 ============ */
 let planTemplate = load('planTemplate',null);
+/* 新固定任务（老用户也会自动补上，按标题去重） */
+const NEW_PLAN_TASKS=[
+  {id:'t6',title:"9点前上床睡觉",stars:2,done:false},
+  {id:'t7',title:"9点半前上床睡觉",stars:1,done:false},
+  {id:'t8',title:"10点后睡觉",stars:-10,done:false},
+  {id:'t9',title:"培生英语打卡",stars:5,done:false},
+  {id:'t10',title:"英语ABC打卡",stars:5,done:false}
+];
 if(!planTemplate){
   planTemplate = [
     {id:'t1',title:"整理书包",stars:1,done:false},
@@ -486,8 +500,18 @@ if(!planTemplate){
     {id:'t3',title:"完成数学口算",stars:2,done:false},
     {id:'t4',title:"练字一页",stars:1,done:false},
     {id:'t5',title:"自己洗漱",stars:1,done:false}
-  ];
+  ].concat(NEW_PLAN_TASKS);
   save('planTemplate',planTemplate);
+}else{
+  /* 老用户升级：补充新固定任务 */
+  let tmplChanged=false;
+  NEW_PLAN_TASKS.forEach(function(nt){
+    if(!planTemplate.some(function(t){return t.title===nt.title;})){
+      planTemplate.push({id:nt.id,title:nt.title,stars:nt.stars,done:false});
+      tmplChanged=true;
+    }
+  });
+  if(tmplChanged)save('planTemplate',planTemplate);
 }
 let planByDate = load('planByDate',{});   // {'2026-08-20':[{id,title,stars,done}],...}
 /* 迁移旧数据：naidou_plan → 今天的任务 */
@@ -497,6 +521,20 @@ if(_oldPlan && Array.isArray(_oldPlan) && _oldPlan.length){
   save('planByDate',planByDate);
   try{localStorage.removeItem('naidou_plan');}catch(e){}
 }
+/* 模板任务同步到今天（今天已有任务时，补上新固定任务） */
+(function(){
+  if(planByDate[today()]){
+    const exist=planByDate[today()].map(function(t){return t.title;});
+    let dayChanged=false;
+    planTemplate.forEach(function(t){
+      if(exist.indexOf(t.title)<0){
+        planByDate[today()].push({id:today()+'_'+t.id,title:t.title,stars:t.stars,done:false});
+        dayChanged=true;
+      }
+    });
+    if(dayChanged)save('planByDate',planByDate);
+  }
+})();
 function getDayTasks(date){
   if(!planByDate[date]){
     planByDate[date] = planTemplate.map(function(t){return {id:date+'_'+t.id,title:t.title,stars:t.stars,done:false};});
@@ -511,11 +549,60 @@ let rewardsGot = load('rewards',[]);   // [{name,cost,date}]
 let mathRight = load('mathRight',0);
 let hzState = load('hzState',{mode:'all',group:'',q:'',limit:300});
 
+/* ============ 金豆流水账（成长历程 / 收支明细的数据源） ============ */
+let beanLog = load('beanLog',[]);   // [{d:'YYYY-MM-DD',t:'事项',v:±N,c:'分类'}]
+function logBean(v,t,c){
+  beanLog.push({d:today(),t:t||'任务奖励',v:+v,c:c||'other'});
+  if(beanLog.length>3000)beanLog=beanLog.slice(-3000);
+  save('beanLog',beanLog);
+}
+function removeBeanLog(t,c){
+  for(let i=beanLog.length-1;i>=0;i--){
+    const b=beanLog[i];
+    if((!t||b.t===t)&&(!c||b.c===c)){beanLog.splice(i,1);break;}
+  }
+  save('beanLog',beanLog);
+}
+/* 首次升级：用历史数据补一份流水（只补一次），并让账目与当前金豆对齐 */
+function seedBeanLog(){
+  if(beanLog.length)return;
+  const seed=[];
+  Object.keys(planByDate||{}).forEach(function(date){
+    (planByDate[date]||[]).forEach(function(t){ if(t.done){seed.push({d:date,t:t.title,v:+t.stars,c:'plan'});} });
+  });
+  Object.keys(exerciseLog||{}).forEach(function(date){
+    const log=exerciseLog[date]||{};
+    Object.keys(log).forEach(function(k){
+      const star=(k.indexOf('height')===0)?((SPORTS.heightGroups[+k.slice(6)]||{}).star||1):5;
+      (log[k]||[]).forEach(function(item){seed.push({d:date,t:item,v:star,c:'sport'});});
+    });
+  });
+  (readingLog||[]).forEach(function(r){seed.push({d:r.date,t:'阅读打卡：《'+r.book+'》',v:+r.stars,c:'read'});});
+  (rewardsGot||[]).forEach(function(r){seed.push({d:r.date,t:'兑换：'+r.name,v:-(+r.cost),c:'reward'});});
+  const sum=seed.reduce(function(a,b){return a+(+b.v);},0);
+  const diff=(+stars)-sum;
+  if(diff!==0){
+    const d0=seed.length?seed.map(function(s){return s.d;}).sort().shift():today();
+    seed.push({d:d0,t:'历史累计（升级前）',v:diff,c:'other'});
+  }
+  if(seed.length){
+    seed.sort(function(a,b){return a.d<b.d?-1:(a.d>b.d?1:0);});
+    beanLog=seed;
+    save('beanLog',beanLog);
+  }
+}
+seedBeanLog();
+
 /* ============ 工具 ============ */
 function esc(s){return (s+'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function setStars(n){stars=n;save('stars',stars);refreshStars();}
-function addStars(n){setStars(stars+n);toast('得到 '+n+' 颗金豆');}
+function addStars(n,reason,cat){
+  setStars(stars+n);
+  if(n>0){toast('得到 '+n+' 颗金豆');}
+  else if(n<0){toast('扣除 '+(-n)+' 颗金豆');}
+  logBean(n,reason,cat);
+}
 function refreshStars(){
   const t='<i class="bean"></i> '+stars;
   document.getElementById('sideStars').innerHTML=t;
@@ -533,22 +620,42 @@ function openModal(title,html,onMount){
 }
 function closeModal(){document.getElementById('modal').classList.remove('show');}
 
+/* ============ 金豆收支明细 ============ */
+function beanDetailHtml(){
+  const list=beanLog.slice().reverse();
+  let h='<div class="muted" style="margin-bottom:10px">当前拥有 <i class="bean"></i> '+stars+' 颗 · 共 '+beanLog.length+' 条记录（最多显示最近 200 条）</div>';
+  if(!beanLog.length){
+    h+='<div class="empty">还没有收支记录～完成打卡就能赚到金豆啦！</div>';
+  }else{
+    h+='<ul class="list" style="max-height:52vh;overflow-y:auto">';
+    list.slice(0,200).forEach(function(b){
+      h+='<li><span class="pill" style="flex:0 0 auto">'+b.d.slice(5,7)+'/'+b.d.slice(8,10)+'</span>'+
+        '<div class="grow" style="margin-left:8px">'+esc(b.t)+'</div>'+
+        '<span class="pill star" style="'+(b.v<0?'background:#FBEAE7;color:#E06B5C':'')+'"><i class="bean"></i> '+(b.v>0?'+':'')+b.v+'</span></li>';
+    });
+    h+='</ul>';
+  }
+  h+='<div class="modalacts"><button class="btn ghost" onclick="closeModal()">关闭</button></div>';
+  return h;
+}
+function showBeanDetail(){openModal('💰 金豆收支明细',beanDetailHtml());}
+
 /* ============ 导航 ============ */
 const NAV=[
- {id:"home",emoji:"🏠",label:"首页",idx:""},
- {id:"daily",emoji:"📅",label:"每日计划",idx:"一"},
- {id:"chinese",emoji:"📖",label:"语文积累",idx:"二"},
- {id:"math",emoji:"🔢",label:"数学思维",idx:"三"},
- {id:"english",emoji:"🔤",label:"英语积累",idx:"四"},
- {id:"sport",emoji:"🏃",label:"每日运动",idx:"五"},
- {id:"picture",emoji:"📚",label:"绘本阅读",idx:"六"},
- {id:"read",emoji:"⏱️",label:"阅读打卡",idx:"七"},
- {id:"reward",emoji:"🎁",label:"奖励中心",idx:"八"}
+ {id:"home",emoji:"🏠",label:"首页"},
+ {id:"daily",emoji:"📅",label:"每日计划"},
+ {id:"chinese",emoji:"📖",label:"语文积累"},
+ {id:"math",emoji:"🔢",label:"数学思维"},
+ {id:"english",emoji:"🔤",label:"英语积累"},
+ {id:"sport",emoji:"🏃",label:"每日运动"},
+ {id:"picture",emoji:"📚",label:"绘本阅读"},
+ {id:"read",emoji:"⏱️",label:"阅读打卡"},
+ {id:"growth",emoji:"📈",label:"成长历程"},
+ {id:"reward",emoji:"🎁",label:"奖励中心"}
 ];
 function buildNav(){
   const nav=document.getElementById('nav');
   nav.innerHTML=NAV.map(n=>'<button class="navitem" data-nav="'+n.id+'">'+
-    '<span class="idx">'+(n.idx||'')+'</span>'+
     '<span class="emoji">'+n.emoji+'</span>'+
     '<span>'+n.label+'</span></button>').join('');
 }
@@ -591,7 +698,7 @@ VIEWS.home=function(){
     '<div class="muted">今日运动打卡：'+(Object.values(exerciseLog[today()]||{}).reduce((a,b)=>a+b.length,0))+' 项</div>'+
     '<div class="muted">今日阅读打卡：'+(readingLog.filter(r=>r.date===today()).length)+' 次</div></div>';
   html+='<div class="quick">'+
-    NAV.filter(n=>n.id!=='home').map(n=>'<a data-nav="'+n.id+'"><div class="qe">'+n.emoji+'</div><div class="qt">'+(n.idx?n.idx+'. ':'')+n.label+'</div></a>').join('')+
+    NAV.filter(n=>n.id!=='home').map(n=>'<a data-nav="'+n.id+'"><div class="qe">'+n.emoji+'</div><div class="qt">'+n.label+'</div></a>').join('')+
     '</div>';
   return html;
 };
@@ -634,7 +741,7 @@ VIEWS.daily=function(){
   tasks.forEach(function(t){
     h+='<li><span class="check '+(t.done?'on':'')+'" '+(isPast?'':'data-act="toggle-plan" data-date="'+sel+'" data-id="'+t.id+'"')+'>'+(t.done?'✓':'')+'</span>'+
        '<div class="grow"><div class="ellip" style="'+(t.done?'text-decoration:line-through;color:var(--muted)':'')+'">'+esc(t.title)+'</div></div>'+
-       '<span class="pill star"><i class="bean"></i> '+(+t.stars)+'</span>'+
+       (t.stars<0?'<span class="pill star neg"><i class="bean"></i> '+(+t.stars)+'</span>':'<span class="pill star"><i class="bean"></i> '+(+t.stars)+'</span>')+
        (isPast?'':'<button class="iconbtn" data-act="del-plan" data-date="'+sel+'" data-id="'+t.id+'">×</button>')+'</li>';
   });
   h+='</ul>';
@@ -991,6 +1098,105 @@ VIEWS.reward=function(){
   return h;
 };
 
+/* 九、成长历程 */
+const GROWTH_CATS={plan:"📅 每日计划",chinese:"📖 语文积累",math:"🔢 数学思维",english:"🔤 英语积累",sport:"🏃 每日运动",picture:"📚 绘本阅读",read:"⏱️ 阅读打卡",reward:"🎁 奖励兑换",other:"✨ 其他"};
+VIEWS.growth=function(){
+  const daySet=new Set(beanLog.map(function(b){return b.d;}));
+  const totalIn=beanLog.reduce(function(a,b){return b.v>0?a+(+b.v):a;},0);
+  const totalOut=beanLog.reduce(function(a,b){return b.v<0?a+(-b.v):a;},0);
+  let h='<div class="banner"><div class="big">📈 成长历程</div><div class="muted">孩子的打卡足迹和金豆变化都在这里，一眼看懂成长～</div></div>';
+  h+='<div class="row" style="margin-bottom:12px">'+
+    '<div class="gstat" style="flex:1;min-width:100px"><div class="gn">'+daySet.size+' 天</div><div class="gl">累计打卡</div></div>'+
+    '<div class="gstat" style="flex:1;min-width:100px"><div class="gn" style="color:var(--good)">+'+totalIn+'</div><div class="gl">累计获得</div></div>'+
+    '<div class="gstat" style="flex:1;min-width:100px"><div class="gn" style="color:#E06B5C">-'+totalOut+'</div><div class="gl">兑换/扣减</div></div>'+
+    '<div class="gstat" style="flex:1;min-width:100px"><div class="gn">'+stars+'</div><div class="gl">当前金豆</div></div>'+
+    '</div>';
+  h+='<div style="margin-bottom:12px"><button class="btn ghost" data-act="bean-detail">💰 金豆收支明细</button></div>';
+  h+='<div class="card"><h3>📉 近 14 天金豆变化</h3>'+growthChart(14)+'</div>';
+  h+='<div class="card"><h3>🧩 各板块累计金豆</h3>'+growthCats()+'</div>';
+  h+='<div class="card"><h3>👣 最近打卡足迹</h3>'+growthRecent()+'</div>';
+  return h;
+};
+function growthChart(n){
+  const pts=[];
+  for(let i=n-1;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const net=beanLog.filter(function(b){return b.d===ds;}).reduce(function(a,b){return a+(+b.v);},0);
+    pts.push({ds:ds,net:net});
+  }
+  if(!pts.some(function(p){return p.net!==0;}))return '<div class="empty">还没有数据～完成打卡后，这里会出现孩子的成长曲线！</div>';
+  const W=640,H=230,PL=36,PR=12,PT=26,PB=30;
+  const min=Math.min(0,Math.min.apply(null,pts.map(function(p){return p.net;})));
+  const max=Math.max(0,Math.max.apply(null,pts.map(function(p){return p.net;})));
+  const span=(max-min)||1;
+  const cw=W-PL-PR,ch=H-PT-PB;
+  function X(i){return PL+cw*(pts.length===1?0.5:i/(pts.length-1));}
+  function Y(v){return PT+ch*(1-(v-min)/span);}
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block;height:auto">';
+  for(let g=0;g<=3;g++){
+    const gy=PT+ch*g/3;
+    svg+='<line x1="'+PL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+gy.toFixed(1)+'" stroke="#EDE8DD" stroke-width="1"/>';
+  }
+  const zy=Y(0);
+  svg+='<line x1="'+PL+'" y1="'+zy.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+zy.toFixed(1)+'" stroke="#D5CEBE" stroke-width="1.4" stroke-dasharray="4 3"/>';
+  const poly=pts.map(function(p,i){return X(i).toFixed(1)+','+Y(p.net).toFixed(1);}).join(' ');
+  svg+='<polyline points="'+poly+'" fill="none" stroke="#5FBE9B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+  pts.forEach(function(p,i){
+    const px=X(i),py=Y(p.net);
+    const col=p.net<0?'#E06B5C':(p.net>0?'#3E9E7E':'#BFB8A9');
+    svg+='<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="3.6" fill="'+col+'"/>';
+    if(p.net!==0){
+      svg+='<text x="'+px.toFixed(1)+'" y="'+((p.net<0?py+16:py-7)).toFixed(1)+'" text-anchor="middle" font-size="10.5" fill="'+col+'" font-weight="700">'+(p.net>0?'+':'')+p.net+'</text>';
+    }
+    if(i%2===0||pts.length<=7){
+      svg+='<text x="'+px.toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-size="9.5" fill="#9C968C">'+p.ds.slice(5)+'</text>';
+    }
+  });
+  svg+='</svg>';
+  return svg;
+}
+function growthCats(){
+  const cats={};
+  beanLog.forEach(function(b){cats[b.c]=(cats[b.c]||0)+(+b.v);});
+  const keys=Object.keys(cats).filter(function(k){return cats[k]!==0;});
+  if(!keys.length)return '<div class="empty">暂无记录</div>';
+  keys.sort(function(a,b){return Math.abs(cats[b])-Math.abs(cats[a]);});
+  const maxAbs=Math.max.apply(null,keys.map(function(k){return Math.abs(cats[k]);}));
+  let h='';
+  keys.forEach(function(k){
+    const v=cats[k];
+    const w=Math.max(5,Math.round(Math.abs(v)/maxAbs*100));
+    h+='<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:3px">'+
+      '<span>'+(GROWTH_CATS[k]||k)+'</span><b style="color:'+(v<0?'#E06B5C':'var(--green-deep)')+'">'+(v>0?'+':'')+v+'</b></div>'+
+      '<div class="statbar"><i style="width:'+w+'%;background:'+(v<0?'linear-gradient(90deg,#EFC0B2,#E06B5C)':'linear-gradient(90deg,var(--green),var(--yellow))')+'"></i></div></div>';
+  });
+  return h;
+}
+function growthRecent(){
+  const out=[];
+  for(let i=0;i<7;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const items=beanLog.filter(function(b){return b.d===ds;});
+    if(!items.length)continue;
+    const net=items.reduce(function(a,b){return a+(+b.v);},0);
+    let ih='<div style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+      '<b style="color:var(--green-deep)">'+(d.getMonth()+1)+'月'+d.getDate()+'日</b>'+
+      '<span class="pill star" style="'+(net<0?'background:#FBEAE7;color:#E06B5C':'')+'"><i class="bean"></i> '+(net>0?'+':'')+net+'</span>'+
+      '</div><ul class="list" style="margin:0">';
+    items.slice().reverse().forEach(function(b){
+      ih+='<li style="padding:7px 10px;margin-bottom:5px"><span class="pill" style="flex:0 0 auto;font-size:11px">'+((GROWTH_CATS[b.c]||b.c).split(' ')[1]||b.c)+'</span>'+
+        '<div class="grow" style="margin-left:6px;font-size:13.5px">'+esc(b.t)+'</div>'+
+        '<span class="pill star" style="'+(b.v<0?'background:#FBEAE7;color:#E06B5C':'')+'"><i class="bean"></i> '+(b.v>0?'+':'')+b.v+'</span></li>';
+    });
+    ih+='</ul></div>';
+    out.push(ih);
+  }
+  if(!out.length)return '<div class="empty">最近 7 天还没有打卡记录～</div>';
+  return out.join('');
+}
+
 /* 设置 */
 VIEWS.settings=function(){
   let h='<div class="card"><h3>⚙️ 设置 / 数据</h3>';
@@ -1049,7 +1255,7 @@ function readAlong(text,targetId){
     else if(score>=60){cls='score-mid';word='不错';}
     if(badge)badge.innerHTML='<span class="scorebadge '+cls+'">'+score+'分 · '+word+'</span>';
     if(score>=60){
-      addStars(2);
+      addStars(2,'短句跟读','english');
       learned.enPhrases=learned.enPhrases||{};learned.enPhrases[text]=true;save('learned',learned);
     }
     else{toast('得分 '+score+'，多练几次就得金豆啦');}
@@ -1076,11 +1282,16 @@ document.addEventListener('click',function(e){
   }
   else if(act==='cal-pick'){save('calSel',el.dataset.d);go('daily');}
   else if(act==='cal-today'){save('calSel',today());go('daily');}
+  else if(act==='bean-detail'){showBeanDetail();}
   else if(act==='toggle-plan'){
     const date=el.dataset.date||today();
     const tasks=getDayTasks(date);
     const t=tasks.find(x=>x.id==el.dataset.id);
-    if(t){ if(!t.done){t.done=true;addStars(+t.stars);}else{t.done=false;setStars(stars-(+t.stars));} save('planByDate',planByDate);go('daily'); }
+    if(t){
+      if(!t.done){t.done=true;addStars(+t.stars,t.title,'plan');}
+      else{t.done=false;setStars(stars-(+t.stars));removeBeanLog(t.title,'plan');}
+      save('planByDate',planByDate);go('daily');
+    }
   }
   else if(act==='del-plan'){
     const date=el.dataset.date||today();
@@ -1090,23 +1301,35 @@ document.addEventListener('click',function(e){
     const date=el.dataset.date||today();
     openModal('添加小任务（'+date+'）',
       '<div class="field"><label>任务名称</label><input id="pt" placeholder="如：背诵古诗一首"></div>'+
-      '<div class="field"><label>金豆数</label><input id="ps" type="number" value="1" min="1"></div>'+
+      '<div class="field"><label>金豆数（正数奖励，负数扣金豆）</label><input id="ps" type="number" value="1"></div>'+
+      '<div class="field"><label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);cursor:pointer">'+
+      '<input type="checkbox" id="pfix" style="width:18px;height:18px;flex:0 0 18px"> 设为每天固定任务（以后每天自动出现）</label>'+
+      '<div class="muted" style="margin-top:-6px;margin-bottom:12px">不勾选就只添加在这一天。</div></div>'+
       '<div class="modalacts"><button class="btn ghost" onclick="closeModal()">取消</button>'+
       '<button class="btn" id="psave">保存</button></div>',
       function(card){
         card.querySelector('#psave').onclick=function(){
           const title=card.querySelector('#pt').value.trim();
-          const st=parseInt(card.querySelector('#ps').value)||1;
+          const st=parseInt(card.querySelector('#ps').value)||0;
           if(!title){toast('请填写任务名称');return;}
+          if(st===0){toast('金豆数不能为 0');return;}
           const id=date+'_'+Date.now();
-          getDayTasks(date).push({id:id,title:title,stars:st,done:false});save('planByDate',planByDate);closeModal();go('daily');
+          getDayTasks(date).push({id:id,title:title,stars:st,done:false});
+          if(card.querySelector('#pfix').checked){
+            if(!planTemplate.some(function(t){return t.title===title;})){
+              planTemplate.push({id:'t'+Date.now(),title:title,stars:st,done:false});
+            }
+            save('planTemplate',planTemplate);
+            toast('已设为每天固定任务');
+          }
+          save('planByDate',planByDate);closeModal();go('daily');
         };
       });
   }
   else if(act==='cn-tab'){cnState.grade=0;save('cnTab',el.dataset.tab);go('chinese');}
   else if(act==='cn-grade'){cnState.grade=+el.dataset.g;go('chinese');}
-  else if(act==='learn-poem'){ var k=el.dataset.tab==='songci'?'songci':'poem'; (learned[k]=learned[k]||[]).push(+el.dataset.i);save('learned',learned);addStars(1);closeModal();go('chinese'); }
-  else if(act==='learn-idiom'){ (learned.idiom=learned.idiom||[]).push(+el.dataset.i);save('learned',learned);addStars(1);closeModal();go('chinese'); }
+  else if(act==='learn-poem'){ var k=el.dataset.tab==='songci'?'songci':'poem'; (learned[k]=learned[k]||[]).push(+el.dataset.i);save('learned',learned);var _d=k==='songci'?SONGCI:POEMS;addStars(1,'学会'+(k==='songci'?'宋词':'古诗')+'：'+(_d[+el.dataset.i]||{}).t,'chinese');closeModal();go('chinese'); }
+  else if(act==='learn-idiom'){ (learned.idiom=learned.idiom||[]).push(+el.dataset.i);save('learned',learned);addStars(1,'学会成语：'+((IDIOMS[+el.dataset.i]||{}).w||''),'chinese');closeModal();go('chinese'); }
   else if(act==='open-poem'){
     var tab2=el.dataset.tab; var data2=tab2==='songci'?SONGCI:POEMS; var p2=data2[+el.dataset.i];
     if(!p2){return;}
@@ -1147,7 +1370,7 @@ document.addEventListener('click',function(e){
     document.getElementById('modalCard').innerHTML=mc3;
     document.getElementById('modal').classList.add('show');
   }
-  else if(act==='learn-hanzi'){ learned.hanziSet=learned.hanziSet||{}; learned.hanziSet[el.dataset.z]=true; save('learned',learned); addStars(1); go('chinese'); }
+  else if(act==='learn-hanzi'){ learned.hanziSet=learned.hanziSet||{}; learned.hanziSet[el.dataset.z]=true; save('learned',learned); addStars(1,'认识汉字：'+el.dataset.z,'chinese'); go('chinese'); }
   else if(act==='hz-filter'){ hzState.mode=el.dataset.mode; hzState.group=''; save('hzState',hzState); go('chinese'); }
   else if(act==='hz-group'){ hzState.mode=el.dataset.mode; hzState.group=el.dataset.group; save('hzState',hzState); go('chinese'); }
   else if(act==='hz-back'){ hzState.group=''; save('hzState',hzState); go('chinese'); }
@@ -1158,7 +1381,7 @@ document.addEventListener('click',function(e){
     const q=load('curQ',null);const v=parseInt(document.getElementById('ans').value);
     const fb=document.getElementById('mathfb');
     if(!q){go('math');return;}
-    if(v===q.ans){fb.textContent='✅ 答对啦！+1 金豆';fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);addStars(1);
+    if(v===q.ans){fb.textContent='✅ 答对啦！+1 金豆';fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);addStars(1,'口算答对','math');
       setTimeout(()=>go('math'),700);
     }else{fb.textContent='❌ 再想想，答案是 '+q.ans;fb.style.color='var(--green-deep)';}
   }
@@ -1186,20 +1409,20 @@ document.addEventListener('click',function(e){
     document.getElementById('modalCard').innerHTML=mc;
     document.getElementById('modal').classList.add('show');
   }
-  else if(act==='learn-word'){ learned.enWords=learned.enWords||{}; learned.enWords[el.dataset.w]=true; save('learned',learned); addStars(1); closeModal(); go('english'); }
+  else if(act==='learn-word'){ learned.enWords=learned.enWords||{}; learned.enWords[el.dataset.w]=true; save('learned',learned); addStars(1,'学会单词：'+el.dataset.w,'english'); closeModal(); go('english'); }
   else if(act==='speak'){speak(el.dataset.text);}
   else if(act==='readalong'){readAlong(el.dataset.text, 'phscore-'+el.dataset.i);}
   else if(act==='pic-tab'){save('picTab',el.dataset.tab);go('picture');}
   else if(act==='open-book'){openBook(el.dataset.tab,+el.dataset.i);}
   else if(act==='pic-read'){
-    const key='picRead'+el.dataset.tab+el.dataset.i;save(key,true);addStars(2);go('picture');
+    const key='picRead'+el.dataset.tab+el.dataset.i;save(key,true);addStars(2,'读完绘本：《'+((BOOKS[el.dataset.tab][+el.dataset.i]||{}).t||'')+'》','picture');go('picture');
   }
   else if(act==='sport-check'){
     const k=el.dataset.k,item=el.dataset.item,star=+el.dataset.star||5;
     let log=exerciseLog[today()]||{outdoor:[],stretch:[],ancient:[],height0:[],height1:[],height2:[]};
     if(!log[k])log[k]=[];
-    if(log[k].includes(item)){log[k]=log[k].filter(x=>x!==item);setStars(stars-star);}
-    else{log[k].push(item);addStars(star);}
+    if(log[k].includes(item)){log[k]=log[k].filter(x=>x!==item);setStars(stars-star);removeBeanLog(item,'sport');}
+    else{log[k].push(item);addStars(star,item,'sport');}
     exerciseLog[today()]=log;save('exercise',exerciseLog);go('sport');
   }
   else if(act==='add-reading'){
@@ -1219,7 +1442,7 @@ document.addEventListener('click',function(e){
           if(!book){toast('请填写书名');return;}
           const gain=min>=30?5:Math.max(1,Math.floor(min/10));
           readingLog.push({date:today(),book,from,to,min,stars:gain});
-          save('reading',readingLog);closeModal();addStars(gain);go('read');
+          save('reading',readingLog);closeModal();addStars(gain,'阅读打卡：《'+book+'》','read');go('read');
         };
       });
   }
@@ -1227,11 +1450,12 @@ document.addEventListener('click',function(e){
     const r=REWARDS[+el.dataset.i];
     if(stars<r.cost){toast('金豆不够哦');return;}
     setStars(stars-r.cost);
+    logBean(-r.cost,'兑换：'+r.name,'reward');
     rewardsGot.push({name:r.name,cost:r.cost,date:today()});
     save('rewards',rewardsGot);toast('兑换成功：'+r.name+' 🎉');go('reward');
   }
   else if(act==='export'){
-    const data={stars,planByDate,planTemplate,learned,exercise:exerciseLog,reading:readingLog,rewards:rewardsGot,mathRight};
+    const data={stars,planByDate,planTemplate,learned,exercise:exerciseLog,reading:readingLog,rewards:rewardsGot,mathRight,beanLog};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);
     a.download='naidou-backup-'+today()+'.json';a.click();toast('备份已导出');
@@ -1251,9 +1475,9 @@ document.addEventListener('click',function(e){
               const d=JSON.parse(rd.result);
               stars=d.stars??stars;planByDate=d.planByDate??planByDate;planTemplate=d.planTemplate??planTemplate;learned=d.learned??learned;
               exerciseLog=d.exercise??exerciseLog;readingLog=d.reading??readingLog;
-              rewardsGot=d.rewards??rewardsGot;mathRight=d.mathRight??mathRight;
+              rewardsGot=d.rewards??rewardsGot;mathRight=d.mathRight??mathRight;beanLog=d.beanLog??beanLog;
               save('stars',stars);save('planByDate',planByDate);save('planTemplate',planTemplate);save('learned',learned);
-              save('exercise',exerciseLog);save('reading',readingLog);save('rewards',rewardsGot);save('mathRight',mathRight);
+              save('exercise',exerciseLog);save('reading',readingLog);save('rewards',rewardsGot);save('mathRight',mathRight);save('beanLog',beanLog);
               closeModal();refreshStars();go('home');toast('导入成功');
             }catch(err){toast('文件格式错误');}
           };
@@ -1262,7 +1486,7 @@ document.addEventListener('click',function(e){
       });
   }
   else if(act==='reset-stars'){
-    if(confirm('确定清空所有金豆吗？')){setStars(0);toast('金豆已清空');}
+    if(confirm('确定清空所有金豆吗？')){if(stars!==0)logBean(-stars,'手动清空金豆','other');setStars(0);toast('金豆已清空');}
   }
 });
 
@@ -1279,7 +1503,7 @@ function renderShapeQuiz(){
   box.querySelectorAll('button').forEach(b=>{
     b.onclick=function(){
       const fb=document.getElementById('sqfb');
-      if(b.dataset.shape===b.dataset.ans){fb.textContent='✅ 答对啦！+1 金豆';fb.style.color='var(--good)';addStars(1);}
+      if(b.dataset.shape===b.dataset.ans){fb.textContent='✅ 答对啦！+1 金豆';fb.style.color='var(--good)';addStars(1,'图形小测验','math');}
       else{fb.textContent='❌ 正确答案是 '+b.dataset.ans;fb.style.color='var(--green-deep)';}
       setTimeout(renderShapeQuiz,900);
     };
@@ -1377,7 +1601,7 @@ function closeReader(){
   const {tab,i}=readerState;
   document.getElementById('reader').classList.remove('show');
   const key='picRead'+tab+i;
-  if(!load(key,false)){save(key,true);addStars(2);}
+  if(!load(key,false)){save(key,true);addStars(2,'读完绘本：《'+((readerState.b||{}).t||'')+'》','picture');}
   readerState=null;
   go('picture');
 }
@@ -1411,6 +1635,13 @@ document.getElementById('modal').addEventListener('click',function(e){if(e.targe
 /* PWA 安装提示 */
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;});
+
+/* PWA 离线缓存注册 */
+if('serviceWorker'in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
 
 /* 初始化 */
 buildNav();
