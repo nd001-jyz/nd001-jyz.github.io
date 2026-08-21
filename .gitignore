@@ -1,0 +1,14 @@
+# 临时脚本与验证文件
+_*.js
+_*.py
+live_*.*
+*_check.*
+
+# 构建辅助文件（非网站运行所需）
+gen_*.py
+parse_grade.py
+grade.html
+grade_map.json
+level1.txt
+mmah.txt
+data_src/
