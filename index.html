@@ -681,12 +681,31 @@ seedBeanLog();
 /* ============ 工具 ============ */
 function esc(s){return (s+'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function setStars(n){stars=n;save('stars',stars);refreshStars();}
+function setStars(n){stars=Math.round(n*10)/10;save('stars',stars);refreshStars();}
+function fmtBean(n){n=Math.round(n*10)/10;return (n%1===0)?String(n):n.toFixed(1);}
 function addStars(n,reason,cat){
   setStars(stars+n);
   if(n>0){toast('得到 '+n+' 颗金豆');}
   else if(n<0){toast('扣除 '+(-n)+' 颗金豆');}
   logBean(n,reason,cat);
+}
+/* 数学模块专用：同种奖励按「天+大类」合并成一条流水，避免每题一条 */
+function mathEarn(n,label){
+  setStars(stars+n);
+  if(n>0){toast('得到 '+fmtBean(n)+' 颗金豆');}
+  else if(n<0){toast('扣除 '+fmtBean(-n)+' 颗金豆');}
+  logBeanMerge(n,label,'math');
+}
+function logBeanMerge(v,t,c){
+  v=+v; if(!v)return;
+  const d=today();
+  for(let i=beanLog.length-1;i>=0;i--){
+    const b=beanLog[i];
+    if(b.d===d && b.c===c && b.t===t){ b.v=Math.round((+b.v+v)*10)/10; save('beanLog',beanLog); return; }
+  }
+  beanLog.push({d:d,t:t||'任务奖励',v:v,c:c||'other'});
+  if(beanLog.length>3000)beanLog=beanLog.slice(-3000);
+  save('beanLog',beanLog);
 }
 function refreshStars(){
   const t='<i class="bean"></i> '+stars;
@@ -716,7 +735,7 @@ function beanDetailHtml(){
     list.slice(0,200).forEach(function(b){
       h+='<li><span class="pill" style="flex:0 0 auto">'+b.d.slice(5,7)+'/'+b.d.slice(8,10)+'</span>'+
         '<div class="grow" style="margin-left:8px">'+esc(b.t)+'</div>'+
-        '<span class="pill star" style="'+(b.v<0?'background:#FBEAE7;color:#E06B5C':'')+'"><i class="bean"></i> '+(b.v>0?'+':'')+b.v+'</span></li>';
+        '<span class="pill star" style="'+(b.v<0?'background:#FBEAE7;color:#E06B5C':'')+'"><i class="bean"></i> '+(b.v>0?'+':'')+fmtBean(b.v)+'</span></li>';
     });
     h+='</ul>';
   }
@@ -963,7 +982,7 @@ VIEWS.math=function(){
     '<button class="tab '+(tab==='app'?'active':'')+'" data-act="math-tab" data-tab="app">应用题</button>'+
     '</div>'+
     '<div class="statcard"><div class="statrow"><span class="sd">✔ 累计答对 '+mathRight+' 道</span>'+
-    '<span class="su">答对得 1 颗金豆，应用题答对得 2 颗金豆</span></div></div>'+
+    '<span class="su">答对得 0.1 颗金豆，应用题答对得 0.5 颗金豆</span></div></div>'+
     '<div id="mathBody">'+mathBody(tab)+'</div>';
   return h;
 };
@@ -973,7 +992,7 @@ function mathBody(tab){
     const sg=parseInt(load('appGrade','2'),10)||2;
     const list=(APP_BANK[sg]||[]);
     const cnt={};for(let g=1;g<=6;g++){cnt[g]=(APP_BANK[g]||[]).length;}
-    let h='<div class="muted" style="margin-bottom:8px">读一读题目，列式计算（或口算），输入答案。答对得 <b>2 颗金豆</b>！</div>';
+    let h='<div class="muted" style="margin-bottom:8px">读一读题目，列式计算（或口算），输入答案。答对得 <b>0.5 颗金豆</b>！</div>';
     h+='<div class="chips" style="margin-bottom:10px">'+
       '<span class="muted" style="font-size:13px;margin-right:4px">年级：</span>';
     for(let g=1;g<=6;g++){
@@ -995,7 +1014,7 @@ function mathBody(tab){
       '<div style="font-size:15px;line-height:1.7;padding:6px 4px">'+esc(q.q)+'</div>'+
       '<div class="muted" style="margin-top:6px">提示：列式 → 计算 → 输入答案（纯数字）</div>'+
       '<div style="margin-top:8px"><input id="appans" inputmode="numeric" placeholder="答案" /></div>'+
-      '<div style="margin-top:8px"><button class="btn" data-act="check-app">检查答案（+2 金豆）</button></div>'+
+      '<div style="margin-top:8px"><button class="btn" data-act="check-app">检查答案（+0.5 金豆）</button></div>'+
       '<div class="feedback" id="appfb"></div></div>'+
       '<div style="text-align:center;margin-top:10px"><button class="btn ghost" data-act="app-next">换一题</button></div>'+
       '<div class="muted center" style="margin-top:8px">'+CALC_GNAME[sg]+' 共 '+list.length+' 道应用题</div>';
@@ -1010,7 +1029,7 @@ function mathBody(tab){
     if(!cats.includes(curCat))curCat=cats[0]||'';
     save('calcCat',curCat);
     const cnt={};for(let g=1;g<=6;g++){let c=0;Object.values(CALC_BANK[g]||{}).forEach(a=>c+=a.length);cnt[g]=c;}
-    let h='<div class="muted" style="margin-bottom:8px">《计算小达人》阳光同学出品，按年级练习，答对得 1 颗金豆。</div>';
+    let h='<div class="muted" style="margin-bottom:8px">《计算小达人》阳光同学出品，按年级练习，答对得 0.1 颗金豆。</div>';
     h+='<div class="chips" style="margin-bottom:8px">'+
       '<span class="muted" style="font-size:13px;margin-right:4px">年级：</span>';
     for(let g=1;g<=6;g++){
@@ -1035,7 +1054,7 @@ function mathBody(tab){
     const qi=Math.floor(Math.random()*list.length);
     const q=list[qi];
     save('curQ',{a:q.q,b:'',op:'',ans:q.a,t:curCat});
-    h+='<div class="card mathbox"><h3>来算一算（答对得 1 颗金豆）</h3>'+
+    h+='<div class="card mathbox"><h3>来算一算（答对得 0.1 颗金豆）</h3>'+
       '<div class="q">'+esc(q.q)+' = ?</div>'+
       '<div><input id="ans" inputmode="numeric" placeholder="?" /></div>'+
       '<div><button class="btn" data-act="check-math">检查一下</button> '+
@@ -1049,7 +1068,7 @@ function mathBody(tab){
   let a=Math.floor(Math.random()*100),b=Math.floor(Math.random()*100);
   if(Math.random()<0.5){q={a,b,op:'+',ans:a+b};}else{ if(b>a){[a,b]=[b,a];} q={a,b,op:'-',ans:a-b};}
   save('curQ',q);
-  let h='<div class="card mathbox"><h3>来算一算（答对得 1 颗金豆）</h3>'+
+  let h='<div class="card mathbox"><h3>来算一算（答对得 0.1 颗金豆）</h3>'+
     '<div class="q">'+q.a+' '+q.op+' '+q.b+' = ?</div>'+
     '<div><input id="ans" inputmode="numeric" placeholder="?" /></div>'+
     '<div><button class="btn" data-act="check-math">检查一下</button></div>'+
@@ -1542,7 +1561,7 @@ document.addEventListener('click',function(e){
     const v=parseInt(document.getElementById('appans').value);
     if(!qi){go('math');return;}
     const q=APP_BANK[qi.g][qi.i];
-    if(v===q.ans){fb.textContent='✅ 答对啦！+2 金豆 · '+q.a;fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);addStars(2,'应用题答对','math');
+    if(v===q.ans){fb.textContent='✅ 答对啦！+0.5 金豆 · '+q.a;fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);mathEarn(0.5,'应用题');
       setTimeout(()=>go('math'),1100);
     }else{fb.textContent='❌ 再想想，答案是 '+q.ans+'（'+q.a+'）';fb.style.color='var(--green-deep)';}
   }
@@ -1550,7 +1569,7 @@ document.addEventListener('click',function(e){
     const q=load('curQ',null);const v=parseInt(document.getElementById('ans').value);
     const fb=document.getElementById('mathfb');
     if(!q){go('math');return;}
-    if(v===q.ans){fb.textContent='✅ 答对啦！+1 金豆';fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);addStars(1,(q.t?('计算小达人·'+q.t):'口算答对'),'math');
+    if(v===q.ans){fb.textContent='✅ 答对啦！+0.1 金豆';fb.style.color='var(--good)';mathRight++;save('mathRight',mathRight);mathEarn(0.1,(q.t?'计算小达人':'100以内加减法'));
       setTimeout(()=>go('math'),700);
     }else{fb.textContent='❌ 再想想，答案是 '+q.ans;fb.style.color='var(--green-deep)';}
   }
