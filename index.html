@@ -962,6 +962,7 @@ function cnBody(tab){
     var ok=learned.hanziSet&&learned.hanziSet[x.z];
     hz+='<div class="gcard"><div class="e" style="font-size:40px;font-weight:800;color:var(--green-deep)">'+esc(x.z)+'</div>'+
       '<div class="ph">'+esc(x.p)+'</div><div class="zh">'+esc(x.m)+'</div>'+
+      (x.w&&x.w.length?'<div class="zu" style="font-size:12px;color:#2e8b7a;margin-top:3px;font-weight:600">组词：'+x.w.map(function(t){return esc(t);}).join('、')+'</div>':'')+
       (ok?'<div class="learned" style="margin-top:6px">✓</div>':'<button class="btn sm" style="margin-top:6px" data-act="learn-hanzi" data-z="'+esc(x.z)+'">认识 +1 金豆</button>')+
       '</div>';
   });
