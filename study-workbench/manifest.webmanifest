@@ -1,0 +1,14 @@
+{
+  "name": "学习管理工作台",
+  "short_name": "模型工作台",
+  "description": "管理学、心理学、自我成长模型化学习平台，每模型含图解、案例与30道练习。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f7fb",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
