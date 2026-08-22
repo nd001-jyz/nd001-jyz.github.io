@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>学习管理工作台 · 模型学习平台</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+    --mgmt:#2563eb; --psy:#db2777; --grow:#059669;
+    --shadow:0 6px 22px rgba(17,24,39,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink);
+    display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden;
+  }
+  header{
+    padding:12px 16px; background:var(--panel); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:10px; flex-shrink:0; padding-top:max(12px,env(safe-area-inset-top));
+  }
+  header .logo{
+    width:34px;height:34px;border-radius:10px;flex-shrink:0;
+    background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:18px;
+  }
+  header h1{font-size:16px;font-weight:700}
+  header p{font-size:11px;color:var(--muted);margin-top:1px}
+  header .stats{margin-left:auto;font-size:11px;color:var(--muted);text-align:right;line-height:1.4}
+  header .stats b{color:var(--ink)}
+
+  .body{flex:1; display:flex; min-height:0;}
+  .sidebar{
+    width:250px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--line);
+    overflow-y:auto; padding:12px 10px;
+  }
+  .subcat-h{font-size:12px;color:#94a3b8;font-weight:700;margin:12px 8px 6px;letter-spacing:.5px}
+  .subcat-h:first-child{margin-top:2px}
+  .model-item{
+    display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;cursor:pointer;
+    margin-bottom:5px;transition:.15s;border:1px solid transparent;min-height:42px;
+  }
+  .model-item:hover{background:#f1f5f9}
+  .model-item.active{background:#eef2ff;border-color:#c7d2fe}
+  .model-item .ic{font-size:17px;width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border-radius:8px}
+  .model-item .nm{font-size:13.5px;font-weight:600;line-height:1.2}
+  .model-item .tg{font-size:11px;color:var(--muted)}
+  .model-item .done{margin-left:auto;font-size:11px;color:#16a34a;display:none}
+  .model-item.learned .done{display:block}
+
+  .content{flex:1; overflow-y:auto; padding:18px 22px 26px;}
+  .crumb{font-size:12px;color:var(--muted);margin-bottom:5px}
+  .m-title{font-size:21px;font-weight:800;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .m-tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px}
+  .m-intro{margin:12px 0;font-size:14px;line-height:1.8;color:#374151}
+  .detail{font-size:14.5px;line-height:1.9;color:#374151}
+  .detail b{color:#1e293b}
+  .points{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0}
+  .point{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
+  .point h4{font-size:13.5px;margin-bottom:3px}
+  .point p{font-size:12.5px;color:var(--muted);line-height:1.6}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin:16px 0}
+  .card h3{font-size:15px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .card .sub{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .chart-wrap{width:100%;overflow-x:auto}
+  svg{display:block;max-width:100%;height:auto;margin:0 auto}
+  .case{margin-bottom:12px;padding:11px 13px;border-left:3px solid var(--line);background:#fafafa;border-radius:0 8px 8px 0}
+  .case .ct{font-weight:700;font-size:13.5px;margin-bottom:3px}
+  .case .cs{font-size:12.5px;color:#475569;line-height:1.7}
+  .case .ca{font-size:12.5px;color:#1d4ed8;line-height:1.7;margin-top:5px}
+
+  .tabs{display:flex;gap:6px;margin:6px 0 4px;border-bottom:1px solid var(--line)}
+  .tab{padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+  .tab.active{color:var(--ink);border-color:#6366f1}
+  .tabpane{display:none}
+  .tabpane.active{display:block}
+
+  .ex-head{display:flex;align-items:center;gap:12px;margin:6px 0 14px;flex-wrap:wrap}
+  .ex-score{font-size:13px;color:var(--muted)}
+  .ex-score b{color:#16a34a;font-size:15px}
+  .ex-progress{flex:1;height:8px;background:#e5e7eb;border-radius:999px;min-width:100px;overflow:hidden}
+  .ex-progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22c55e,#16a34a);transition:.3s}
+  .btn-reset{font-size:12px;padding:7px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;color:var(--muted)}
+  .btn-reset:hover{background:#f1f5f9}
+  .quiz{margin-bottom:14px;border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel)}
+  .quiz .q{font-size:13.5px;font-weight:600;margin-bottom:9px;line-height:1.6}
+  .quiz .opts{display:flex;flex-direction:column;gap:7px}
+  .opt{
+    display:flex;align-items:center;gap:9px;padding:10px 11px;border:1px solid var(--line);border-radius:9px;
+    cursor:pointer;font-size:13px;transition:.15s;background:#fff;min-height:42px;
+  }
+  .opt:hover{border-color:#c7d2fe;background:#f8fafc}
+  .opt .k{width:22px;height:22px;border-radius:6px;background:#eef2ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .opt.correct{border-color:#16a34a;background:#f0fdf4}
+  .opt.correct .k{background:#16a34a;color:#fff}
+  .opt.wrong{border-color:#dc2626;background:#fef2f2}
+  .opt.wrong .k{background:#dc2626;color:#fff}
+  .opt.locked{cursor:default}
+  .explain{margin-top:9px;font-size:12.5px;line-height:1.7;padding:9px 11px;border-radius:8px;display:none}
+  .explain.show{display:block}
+  .explain.ok{background:#f0fdf4;color:#166534}
+  .explain.no{background:#fef2f2;color:#991b1b}
+  .qmeta{font-size:11px;color:#94a3b8;margin-top:6px}
+
+  .taskbar{
+    flex-shrink:0; background:var(--panel); border-top:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; gap:10px; padding:10px 12px;
+    padding-bottom:max(10px,env(safe-area-inset-bottom));
+    box-shadow:0 -4px 18px rgba(17,24,39,.05);
+  }
+  .task{
+    display:flex;align-items:center;gap:7px;padding:10px 18px;border-radius:12px;cursor:pointer;
+    font-size:13.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);background:#fff;transition:.15s;
+  }
+  .task .ti{font-size:18px}
+  .task:hover{transform:translateY(-2px)}
+  .task.active{color:#fff;border-color:transparent}
+  .task[data-cat="management"].active{background:var(--mgmt)}
+  .task[data-cat="psychology"].active{background:var(--psy)}
+  .task[data-cat="growth"].active{background:var(--grow)}
+
+  .welcome{text-align:center;padding:50px 16px;color:var(--muted)}
+  .welcome .big{font-size:26px;margin-bottom:8px}
+  .cat-cards{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+  .cat-card{width:220px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;cursor:pointer;box-shadow:var(--shadow);transition:.15s}
+  .cat-card:hover{transform:translateY(-4px)}
+  .cat-card .ci{font-size:30px}
+  .cat-card h3{margin:8px 0 4px;font-size:16px}
+  .cat-card p{font-size:12px;color:var(--muted)}
+  .cat-card .cnt{margin-top:8px;font-size:12px;color:var(--muted)}
+
+  /* 移动端：纵向布局，侧栏变可滚动面板，任务栏保持底部 */
+  @media(max-width:780px){
+    .body{flex-direction:column}
+    .sidebar{width:100%;max-height:32vh;border-right:none;border-bottom:1px solid var(--line);padding:8px 10px}
+    .content{padding:14px 14px 20px}
+    header p{display:none}
+    .m-title{font-size:18px}
+    .task{padding:9px 14px;font-size:13px;flex:1;justify-content:center}
+    .taskbar{gap:6px}
+    .points{grid-template-columns:1fr 1fr}
+    .cat-cards{flex-direction:column;align-items:center}
+  }
+  @media(max-width:430px){
+    .points{grid-template-columns:1fr}
+    .task .ti{font-size:16px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">📚</div>
+  <div>
+    <h1>学习管理工作台</h1>
+    <p>管理学 · 心理学 · 自我成长 · 模型化学习 + 练习巩固</p>
+  </div>
+  <div class="stats">
+    <div>已学 <b id="stLearned">0</b>/<b id="stTotal">0</b></div>
+    <div>正确率 <b id="stAcc">—</b></div>
+  </div>
+</header>
+
+<div class="body">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="content" id="content"></main>
+</div>
+
+<nav class="taskbar" id="taskbar"></nav>
+
+<script>
+/* ============ 数据：三类模型 ============ */
+const CATS = [
+  {key:"management", name:"管理学模型", icon:"🏢", color:"var(--mgmt)"},
+  {key:"psychology", name:"心理学模型", icon:"🧠", color:"var(--psy)"},
+  {key:"growth",     name:"自我成长模型", icon:"🌱", color:"var(--grow)"}
+];
+
+/* ---------- 管理学：6 大子分类（共35） ---------- */
+const MGMT = { subcats:[
+  { key:"strategy", name:"战略与竞争分析", models:[
+    { id:"fiveforces", name:"波特五力模型", tag:"行业盈利结构", icon:"⚔️",
+      intro:"波特五力从供应商、购买者、新进入者、替代品、行业内竞争五个维度分析行业盈利空间与竞争格局，是战略分析的起点。",
+      points:[{h:"供应商议价能力",p:"上游集中或转换成本高则压利润。"},{h:"购买者议价能力",p:"客户集中或选择多则压价强。"},{h:"新进入者威胁",p:"壁垒低则新对手涌入。"},{h:"替代品威胁",p:"他方案满足同需求。"},{h:"行业内竞争",p:"对手多、同质化则内卷。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：奶茶店选址",s:"一条街 8 家奶茶店（行业内竞争强）、原料被少数供应商垄断（供应商强）、顾客随意换店（购买者强）。",a:"五力全面偏弱，需靠差异化或成本优势破局，否则慎入。"}] },
+    { id:"valuechain", name:"价值链分析", tag:"价值从哪里来", icon:"🔗",
+      intro:"价值链把企业活动拆为基本活动（进-产-销-服）与支持活动，定位真正创造差异化的环节以建立优势。",
+      points:[{h:" inbound 物流",p:"原料采购与仓储。"},{h:"生产运营",p:"制造与品控。"},{h:"outbound 物流",p:"配送与渠道。"},{h:"市场营销",p:"品牌与销售。"},{h:"服务",p:"售后与留存。"}],
+      chart:{type:"flow"},
+      cases:[{t:"案例：找出利润环节",s:"某制造厂发现生产环节同质，真正的溢价来自售后服务网络。",a:"把资源投向高附加值服务环节，而非盲目扩产。"}] },
+    { id:"pestel", name:"PESTEL 分析", tag:"宏观环境扫描", icon:"🌐",
+      intro:"PESTEL 从政治、经济、社会、技术、环境、法律六个宏观维度扫描外部大势，识别机会与风险。",
+      points:[{h:"政治 Political",p:"政策与稳定性。"},{h:"经济 Economic",p:"增长、利率、消费力。"},{h:"社会 Social",p:"人口、文化、观念。"},{h:"技术 Technological",p:"新技术冲击。"},{h:"环境 Environmental",p:"双碳与可持续。"},{h:"法律 Legal",p:"合规与监管。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：出海前扫描",s:"某 App 出海前用 PESTEL 发现目标国数据合规法律严苛。",a:"提前做合规改造，避免上线即被下架。"}] },
+    { id:"blueocean", name:"蓝海战略", tag:"开创无争市场", icon:"🌊",
+      intro:"蓝海战略主张跳出'红海'血拼，通过价值创新同时追求差异化与低成本，开创新需求、非竞争的市场空间。",
+      points:[{h:"价值创新",p:"同时提差异化与降本。"},{h:"重构边界",p:"跨行业找新需求。"},{h:"四步动作",p:"剔除-减少-增加-创造。"},{h:"剔除减项",p:"去掉不必要元素降成本。"}],
+      chart:{type:"split", groups:[
+        {t:"红海",items:["已知市场空间","与对手硬拼","价值-成本权衡","同质化"]},
+        {t:"蓝海",items:["新需求空间","价值创新","打破权衡","非竞争"]} ]},
+      cases:[{t:"案例：太阳马戏团",s:"不拼动物与明星（红海），改为剧场化体验，开辟成人高端演出蓝海。",a:"剔除减项、增加创造项，重构行业边界。"}] },
+    { id:"vrio", name:"VRIO 框架", tag:"竞争优势检验", icon:"🔍",
+      intro:"VRIO 用价值、稀缺、难以模仿、组织四个标准检验资源能否成为持续竞争优势。",
+      points:[{h:"V 价值 Value",p:"能否创造价值。"},{h:"R 稀缺 Rarity",p:"是否稀缺。"},{h:"I 难以模仿",p:"是否被模仿。"},{h:"O 组织 Organization",p:"组织能否承载。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：核心算法",s:"某司算法有价值、稀缺且难模仿，但组织流程混乱无法落地。",a:"四项全满足才构成持续优势，缺 O 则优势无法兑现。"}] },
+    { id:"ansoff", name:"安索夫矩阵", tag:"增长路径选择", icon:"🧭",
+      intro:"安索夫用'产品（新/旧）×市场（新/旧）'四象限，给出市场渗透、市场开发、产品开发、多元化四条增长路径。",
+      points:[{h:"市场渗透",p:"老产品老市场提份额。"},{h:"市场开发",p:"老产品新市场。"},{h:"产品开发",p:"新产品老市场。"},{h:"多元化",p:"新产品新市场（风险高）。"}],
+      chart:{type:"matrix", quad:[
+        {t:"市场渗透",c:"#16a34a",d:"现有×现有"},{t:"产品开发",c:"#2563eb",d:"新×现有"},
+        {t:"市场开发",c:"#f59e0b",d:"现有×新"},{t:"多元化",c:"#94a3b8",d:"新×新"} ]},
+      cases:[{t:"案例：区域扩张",s:"成熟产品在国内份额见顶，决定开拓东南亚。",a:"属'市场开发'，风险低于盲目多元化。"}] },
+    { id:"positioning", name:"定位理论", tag:"占据心智", icon:"🎯",
+      intro:"定位理论强调在顾客心智中占据一个清晰、差异化的位置，比'什么都做'更有效。",
+      points:[{h:"抢占心智",p:"成为某品类的代表。"},{h:"差异化",p:"与竞品形成区隔。"},{h:"聚焦",p:"一词占领认知。"},{h:"一词占领",p:"用一句话占心智。"}],
+      chart:{type:"split", groups:[
+        {t:"有效定位",items:["聚焦一个词","差异化清晰","占据品类第一联想"]},
+        {t:"失效做法",items:["大而全","跟风模仿","信息杂乱"]} ]},
+      cases:[{t:"案例：'安全'沃尔沃",s:"沃尔沃长期绑定'安全'，在用户心智占住位置。",a:"用一个词占据品类认知，胜过功能堆砌。"}] },
+    { id:"genericstrategy", name:"基本竞争战略", tag:"三类取胜方式", icon:"♟️",
+      intro:"波特提出企业应在成本领先、差异化、集中化三种基本战略中择一，'夹在中间'最危险。",
+      points:[{h:"成本领先",p:"最低成本取胜。"},{h:"差异化",p:"独有价值溢价。"},{h:"集中化",p:"聚焦细分市场。"},{h:"避免夹中间",p:"三选一，忌模糊。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：夹在中间",s:"某企业既无成本优势也无差异，两头不靠。",a:"须明确选一条主线，避免战略模糊。"}] },
+    { id:"ge", name:"GE/麦肯锡九宫格矩阵", tag:"业务组合投资评估", icon:"📊",
+      intro:"GE/麦肯锡九宫格用'行业吸引力 × 企业竞争力'3×3 矩阵评估业务组合，比 BCG 多了多因素加权，指导投资取舍。",
+      points:[{h:"行业吸引力",p:"市场/利润/增长/政策等加权。"},{h:"企业竞争力",p:"份额/品牌/技术/渠道等。"},{h:"九宫格决策",p:"绿区加注、黄区取舍、红区退出。"},{h:"动态复盘",p:"定期重评防止僵化。"}],
+      chart:{type:"ninebox", xLabel:"行业吸引力（低 → 高）", yLabel:"企业竞争力（低 → 高）",
+        cells:["选择性投资","重点投资","重点投资","逐步退出","择优维持","重点投资","退出/剥离","收获退出","选择性投资"]},
+      cases:[{t:"案例：组合体检",s:"高吸引力+强实力业务应重点加注；低吸引力+弱实力则收缩剥离。",a:"双维度加权打分落入九宫格，绿区加注、红区退出，科学分配资源。"}] }
+  ]},
+  { key:"org", name:"组织与部门管理", models:[
+    { id:"orgtype", name:"组织结构类型", tag:"职能/事业部/矩阵", icon:"🏛️",
+      intro:"组织结构决定汇报与协作方式：职能制专业高效、事业部制灵活贴近市场、矩阵制双线协同。",
+      points:[{h:"职能制",p:"按专业分工，效率高但部门墙。"},{h:"事业部制",p:"按产品/区域，灵活但重复。"},{h:"矩阵制",p:"双线汇报，协同强但复杂。"},{h:"因时而变",p:"随战略调整结构。"}],
+      chart:{type:"split", groups:[
+        {t:"职能制",items:["专业分工清晰","资源集中","易现部门墙"]},
+        {t:"事业部制",items:["贴近市场","快速决策","资源重复"]} ]},
+      cases:[{t:"案例：扩张期选型",s:"公司从单一业务走向多产品，仍用职能制导致响应慢。",a:"多业务阶段转向事业部或矩阵，提升市场响应。"}] },
+    { id:"flatvs", name:"扁平化 vs 层级", tag:"管理幅度", icon:"🪜",
+      intro:"层级多则控制强但慢；扁平化决策快、贴近一线，但对管理者幅度与员工自驱要求高。",
+      points:[{h:"层级式",p:"控制强、路径长。"},{h:"扁平化",p:"决策快、一线赋能。"},{h:"匹配阶段",p:"按规模与成熟度选。"},{h:"动态演进",p:"随规模调层级。"}],
+      chart:{type:"split", groups:[
+        {t:"层级式",items:["命令链清晰","适合大规模","响应较慢"]},
+        {t:"扁平化",items:["信息快","授权一线","要求自驱"]} ]},
+      cases:[{t:"案例：创业公司",s:"小团队用扁平化，决策快；规模变大后失控。",a:"随规模动态调整，并非越平越好。"}] },
+    { id:"zql", name:"责权利对等", tag:"责任权力利益", icon:"⚖️",
+      intro:"管理的基本原则：给多大责任就要配多大权力与利益，三者对等才能落地、留人。",
+      points:[{h:"责任",p:"要明确可考核。"},{h:"权力",p:"匹配责任下放。"},{h:"利益",p:"与贡献挂钩。"},{h:"三者对等",p:"失衡则推诿或流失。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：有责无权",s:"主管背业绩指标却无用人权与预算权。",a:"责权利不对等，目标必然落空，须同步授权。"}] },
+    { id:"amoeba", name:"阿米巴经营", tag:"划小核算单元", icon:"🧫",
+      intro:"阿米巴把企业划成多个独立核算的小单元，全员参与经营，像细胞一样自主运转。",
+      points:[{h:"划小单元",p:"独立核算的小组织。"},{h:"内部定价",p:"单元间模拟交易。"},{h:"全员经营",p:"人人算账主人翁。"},{h:"数据透明",p:"经营结果公开。"}],
+      chart:{type:"split", groups:[
+        {t:"阿米巴做法",items:["小单元独立核算","内部市场化定价","经营数据透明"]},
+        {t:"传统做法",items:["大锅饭核算","成本中心","员工只执行"]} ]},
+      cases:[{t:"案例：单元对账",s:"各阿米巴每日看营收与费用，主动降本。",a:"把市场压力传导到每个细胞，激活一线。"}] },
+    { id:"matrixorg", name:"矩阵式组织", tag:"双线汇报", icon:"🔲",
+      intro:"矩阵组织让成员同时向职能经理与项目经理汇报，兼顾专业深度与项目协同。",
+      points:[{h:"职能线",p:"提供专业与资源。"},{h:"项目线",p:"负责交付与目标。"},{h:"双汇报",p:"协同强但易冲突。"},{h:"明确权重",p:"定冲突时决策方。"}],
+      chart:{type:"split", groups:[
+        {t:"职能线",items:["专业培养","资源池","标准统一"]},
+        {t:"项目线",items:["目标导向","跨职能协同","客户对接"]} ]},
+      cases:[{t:"案例：研发项目经理",s:"工程师同时向技术总监与项目经理汇报，优先级冲突。",a:"须明确决策权重与沟通机制，化解双线张力。"}] }
+  ]},
+  { key:"goal", name:"目标与绩效管理", models:[
+    { id:"kpi", name:"KPI 关键指标", tag:"结果与过程指标", icon:"📈",
+      intro:"KPI 用关键指标量化目标达成度，分为滞后指标（结果）与领先指标（驱动因素）。",
+      points:[{h:"滞后指标",p:"结果型，如营收。"},{h:"领先指标",p:"驱动型，如拜访量。"},{h:"少而精",p:"抓关键少数。"},{h:"可量化",p:"可追踪可考核。"}],
+      chart:{type:"split", groups:[
+        {t:"滞后指标",items:["销售额","利润","流失率","结果导向"]},
+        {t:"领先指标",items:["客户拜访","培训时长","过程动作","预测未来"]} ]},
+      cases:[{t:"案例：只盯销售额",s:"团队季度末才发现缺口，已来不及。",a:"用领先指标（周拜访量）提前干预，而非只看结果。"}] },
+    { id:"okr", name:"OKR 目标管理", tag:"目标与关键结果", icon:"🚀",
+      intro:"OKR 用定性的目标 O 配量化的关键结果 KR 来对齐方向、聚焦重点，强调挑战与透明。",
+      points:[{h:"O 目标",p:"定性、鼓舞人心。"},{h:"KR 关键结果",p:"可量化成果。"},{h:"挑战性",p:"70% 达成即优。"},{h:"透明对齐",p:"上下公开互撑。"}],
+      chart:{type:"split", groups:[
+        {t:"O 目标（定性）",items:["让用户爱上产品"]},
+        {t:"KR 关键结果（量化）",items:["留存 40%→55%","NPS 30→45","月活 +50%"]} ]},
+      cases:[{t:"案例：季度 OKR",s:"O：成为首选干货源；KR：周更3篇、订阅+20%、分享率9%。",a:"每周看 KR，盯结果变好而非做了多少事。"}] },
+    { id:"bsc", name:"平衡计分卡", tag:"四维评价", icon:"⚖️",
+      intro:"BSC 从财务、客户、内部流程、学习成长四个维度平衡评价组织，避免唯财务短视。",
+      points:[{h:"财务",p:"股东视角的成果。"},{h:"客户",p:"市场与满意度。"},{h:"内部流程",p:"高效运营能力。"},{h:"学习成长",p:"人才与迭代。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：只看利润",s:"利润达标但客户流失、能力没沉淀。",a:"四维平衡，才能持续健康增长。"}] },
+    { id:"ksf", name:"KSF 关键成功因子", tag:"赢的关键", icon:"🔑",
+      intro:"KSF 找出在某一行业中致胜必须做好的少数关键成功因子，集中资源突破。",
+      points:[{h:"行业致胜点",p:"该行业赢的关键。"},{h:"聚焦",p:"资源压在 KSF。"},{h:"差异化发力",p:"在关键处超对手。"},{h:"动态调整",p:"KSF 随阶段变。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：零售 KSF",s:"便利店行业 KSF 是选址与补货时效。",a:"把精力放在 KSF 上，而非平均用力。"}] },
+    { id:"onion", name:"目标分解（剥洋葱）", tag:"层层拆解", icon:"🧅",
+      intro:"目标分解把总目标逐层拆成年度、季度、月度、周、日，让大目标变成可执行动作。",
+      points:[{h:"总目标",p:"顶层方向。"},{h:"年度/季度",p:"阶段里程碑。"},{h:"月度/周",p:"可执行计划。"},{h:"日行动",p:"落地最小单元。"}],
+      chart:{type:"flow"},
+      cases:[{t:"案例：年入百万",s:"拆成月均8万、周2万、每日动作。",a:"大目标不可怕，层层落到每日动作即可推进。"}] },
+    { id:"360", name:"360 度评估", tag:"多源反馈", icon:"🔄",
+      intro:"360 评估收集上级、同级、下级与自评多方反馈，得到更全面的绩效与发展画像。",
+      points:[{h:"上级",p:"目标与结果视角。"},{h:"同级",p:"协作与配合。"},{h:"下级",p:"领导与管理。"},{h:"自评",p:"自我觉察。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：只听上级",s:"管理者自评与下级评价差距大却无人知。",a:"多源反馈暴露盲点，助力发展。"}] },
+    { id:"pfm", name:"绩效面谈", tag:"反馈促改进", icon:"💬",
+      intro:"绩效面谈用'准备-反馈-倾听-改进'四步，把考核转为发展对话，而非单向评判。",
+      points:[{h:"准备",p:"数据与事例。"},{h:"反馈",p:"具体不笼统。"},{h:"倾听",p:"听对方视角。"},{h:"改进",p:"定行动计划。"}],
+      chart:{type:"flow"},
+      cases:[{t:"案例：面谈变批斗",s:"主管只念分数，员工防御抵触。",a:"用事实+倾听+改进计划，转为成长对话。"}] },
+    { id:"talent9", name:"麦肯锡人才九宫格", tag:"绩效×潜力盘点", icon:"🧩",
+      intro:"麦肯锡人才九宫格用'当前绩效 × 未来潜力'3×3 矩阵盘点人才，把模糊的判断变成九类可行动决策，指导保留、培养与汰换。",
+      points:[{h:"绩效轴",p:"当前产出与结果。"},{h:"潜力轴",p:"未来成长空间。"},{h:"九宫格落位",p:"分类差异化管理。"},{h:"超级明星",p:"高潜高绩，重点保留加速培养。"}],
+      chart:{type:"ninebox", xLabel:"当前绩效（低 → 高）", yLabel:"未来潜力（低 → 高）",
+        cells:["高潜新秀","重点培养","超级明星","待改进","中坚力量","核心骨干","问题员工","稳定贡献","业务专家"]},
+      cases:[{t:"案例：人才盘点",s:"高潜高绩者却与平庸者同薪酬、无发展通道。",a:"按九宫格差异化管理：明星加速晋升、问题员工改进或汰换、专家给专业通道。"}] }
+  ]},
+  { key:"team", name:"团队管理工具", models:[
+    { id:"belbin", name:"贝尔宾团队角色", tag:"九种角色", icon:"🎭",
+      intro:"Belbin 把团队角色分为九类，平衡搭配（而非全要明星）才能互补高效。",
+      points:[{h:"智多星",p:"创新点子。"},{h:"外交家",p:"外接资源。"},{h:"协调者",p:"凝聚方向。"},{h:"执行者",p:"落地推进。"},{h:"完成者",p:"细节把关。"},{h:"专业师",p:"技术权威。"},{h:"审议员",p:"谨慎判断。"},{h:"凝聚者",p:"润滑关系。"},{h:"鞭策者",p:"驱动节奏。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：全明星队",s:"九个智多星组队，争论多产出少。",a:"按角色互补组队，比堆明星更有效。"}] },
+    { id:"tuckman", name:"塔克曼团队阶段", tag:"形成到成熟", icon:"🌱",
+      intro:"Tuckman 提出团队经历形成、震荡、规范、成熟（及解散）五阶段，管理者因阶段施法。",
+      points:[{h:"形成 Forming",p:"试探依赖。"},{h:"震荡 Storming",p:"冲突显现。"},{h:"规范 Norming",p:"建立规则。"},{h:"成熟 Performing",p:"高效协同。"},{h:"解散 Adjourning",p:"收尾转交。"}],
+      chart:{type:"flow"},
+      cases:[{t:"案例：新团队吵架",s:"刚组建就频发冲突，主管慌了。",a:"这是'震荡期'正常过程，引导规范而非压制。"}] },
+    { id:"conflict", name:"冲突管理（TK）", tag:"五种策略", icon:"🕊️",
+      intro:"Thomas-Kilmann 用'坚持己见 × 合作'给出竞争、合作、妥协、回避、迁就五策略。",
+      points:[{h:"竞争",p:"高坚持低合作，紧急决断。"},{h:"合作",p:"双高，共赢解决。"},{h:"妥协",p:"各退一步。"},{h:"回避",p:"暂不涉及。"},{h:"迁就",p:"顾全关系。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：技术分歧",s:"两方案争执不下。",a:"重要且可持续选'合作'找第三优解，小事可'迁就'。"}] },
+    { id:"raci", name:"RACI 责任分配", tag:"谁该干什么", icon:"📋",
+      intro:"RACI 为每项任务明确：负责执行 R、问责 A、咨询 C、知会 I，消除推诿。",
+      points:[{h:"R 负责",p:"实际执行的人。"},{h:"A 问责",p:"对结果负责。"},{h:"C 咨询",p:"事前征求。"},{h:"I 知会",p:"事后告知。"}],
+      chart:{type:"split", groups:[
+        {t:"执行侧",items:["R 负责执行","A 最终问责"]},
+        {t:"协同侧",items:["C 咨询意见","I 知会进展"]} ]},
+      cases:[{t:"案例：项目推诿",s:"任务没人认领，出事互相甩锅。",a:"用 RACI 每项任务定唯一 A，责任清晰。"}] }
+  ]},
+  { key:"ops", name:"运营与流程管理", models:[
+    { id:"pdca", name:"PDCA 循环", tag:"持续改进", icon:"🔄",
+      intro:"PDCA（计划-执行-检查-处理）是周而复始、持续改进的闭环方法论，广泛用于质量与个人成长。",
+      points:[{h:"P 计划",p:"定目标与方案。"},{h:"D 执行",p:"小步试跑。"},{h:"C 检查",p:"对照评估。"},{h:"A 处理",p:"标准化/改进。"}],
+      chart:{type:"cycle"},
+      cases:[{t:"案例：降响应时长",s:"P 目标<30秒；D 试行新话术；C 达标；A 推广。",a:"小循环试错，降低大改风险。"}] },
+    { id:"dmaic", name:"六西格玛 DMAIC", tag:"质量改进", icon:"🎯",
+      intro:"DMAIC 用定义、测量、分析、改进、控制五步系统降低缺陷、提升质量。",
+      points:[{h:"定义 Define",p:"明确问题与目标。"},{h:"测量 Measure",p:"收集数据基线。"},{h:"分析 Analyze",p:"找根因。"},{h:"改进 Improve",p:"优化方案。"},{h:"控制 Control",p:"固化维持。"}],
+      chart:{type:"flow"},
+      cases:[{t:"案例：不良率偏高",s:"用 DMAIC 定位焊接参数偏差并固化。",a:"数据驱动而非拍脑袋，质量稳定提升。"}] },
+    { id:"7wastes", name:"精益七浪费", tag:"消除浪费", icon:"🗑️",
+      intro:"精益识别七种浪费，通过消除它们提升效率与客户价值。",
+      points:[{h:"过量生产",p:"做多了。"},{h:"等待",p:"等人等料。"},{h:"运输",p:"不必要搬运。"},{h:"过度加工",p:"做多余功能。"},{h:"库存",p:"积压占用。"},{h:"动作",p:"多余操作。"},{h:"不良品",p:"返工报废。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：车间乱象",s:"半成品堆积、工人来回跑。",a:"对照七浪费逐条消除，产能上升。"}] },
+    { id:"5s", name:"5S 现场管理", tag:"整理到素养", icon:"🧹",
+      intro:"5S 用整理、整顿、清扫、清洁、素养打造有序、安全、高效的现场。",
+      points:[{h:"整理",p:"区分要与不要。"},{h:"整顿",p:"定置摆放。"},{h:"清扫",p:"清洁环境。"},{h:"清洁",p:"标准化维持。"},{h:"素养",p:"养成习惯。"}],
+      chart:{type:"bar"},
+      cases:[{t:"案例：仓库找料难",s:"东西乱放，平均找料20分钟。",a:"整理整顿后秒级取用，效率大增。"}] },
+    { id:"vsm", name:"价值流图", tag:"看清端到端", icon:"🛤️",
+      intro:"价值流图把信息流、物流、增值与等待可视化，暴露瓶颈与浪费。",
+      points:[{h:"信息流",p:"订单与指令。"},{h:"物流",p:"物料移动。"},{h:"增值",p:"客户买单的动作。"},{h:"等待",p:"非增值滞留。"}],
+      chart:{type:"flow"},
+      cases:[{t:"案例：交付周期长",s:"图上一画，发现80%时间在排队等待。",a:"聚焦压缩等待，而非加快加工。"}] },
+    { id:"kanban", name:"看板 Kanban", tag:"拉动式可视化", icon:"📌",
+      intro:"看板用可视化板与在制品限制，实现拉动式流动，暴露瓶颈、平滑节奏。",
+      points:[{h:"可视化",p:"任务一眼可见。"},{h:"限制在制品",p:"防过载。"},{h:"拉动式",p:"下游拉动上游。"},{h:"持续拉式",p:"下游触发上游。"}],
+      chart:{type:"split", groups:[
+        {t:"看板做法",items:["任务可视化","限制在制品","拉动不推式"]},
+        {t:"传统推式",items:["批量下发","易积压","瓶颈隐蔽"]} ]},
+      cases:[{t:"案例：任务堆积",s:"每人同时接5个任务，都做不精。",a:"限制在制品，流动更顺、交付更快。"}] }
+  ]},
+  { key:"innov", name:"创新与变革管理", models:[
+    { id:"changecurve", name:"变革曲线", tag:"情绪五阶段", icon:"🎢",
+      intro:"变革曲线（Kübler-Ross）描述人面对变革经历否认、愤怒、讨价还价、抑郁、接受，管理沟通要因阶段而异。",
+      points:[{h:"否认",p:"不愿相信。"},{h:"愤怒",p:"抵触埋怨。"},{h:"讨价还价",p:"试图挽回。"},{h:"抑郁",p:"失落低迷。"},{h:"接受",p:"重新投入。"}],
+      chart:{type:"flow"},
+      cases:[{t:"案例：系统切换抵触",s:"新系统上线员工集体抱怨。",a:"识别处于'愤怒期'，加强沟通与支持而非强制。"}] },
+    { id:"diffusion", name:"创新扩散（S曲线）", tag:"采用生命周期", icon:"📈",
+      intro:"创新扩散用 S 曲线描述技术/产品从导入、成长、成熟到饱和的采用过程。",
+      points:[{h:"导入期",p:"慢、风险高。"},{h:"成长期",p:"快速爬升。"},{h:"成熟期",p:"趋于饱和。"},{h:"衰退期",p:"被新曲线替代。"}],
+      chart:{type:"line", xLabels:["导入","早期","成长","成熟","饱和","衰退"],
+        points:[{x:0,y:3},{x:1,y:10},{x:2,y:35},{x:3,y:68},{x:4,y:90},{x:5,y:97}]},
+      cases:[{t:"案例：押错时点",s:"在成熟期重金进入，红利已尽。",a:"看清所处曲线阶段，早期布局才有高回报。"}] },
+    { id:"designthink", name:"设计思维", tag:"以人为本创新", icon:"🎨",
+      intro:"设计思维以共情用户为核心，经定义、创意、原型、测试五步迭代出真正解决问题的方案。",
+      points:[{h:"共情",p:"理解用户。"},{h:"定义",p:"锁定真问题。"},{h:"创意",p:"发散方案。"},{h:"原型",p:"快速做样。"},{h:"测试",p:"验证迭代。"}],
+      chart:{type:"flow"},
+      cases:[{t:"案例：做错功能",s:"闭门造车的 App 无人用。",a:"先共情再定义，用原型快速试错。"}] },
+    { id:"secondcurve", name:"第二曲线", tag:"持续增长", icon:"📉",
+      intro:"第二曲线强调在第一曲线见顶前就启动新增长曲线，避免盛极而衰。",
+      points:[{h:"第一曲线",p:"当前主营业务。"},{h:"拐点前启动",p:"未衰先布局。"},{h:"第二曲线",p:"新增长引擎。"},{h:"平滑接力",p:"两曲线重叠过渡。"}],
+      chart:{type:"line", xLabels:["初期","成长","峰值前","峰值","衰退"],
+        points:[{x:0,y:5},{x:1,y:40},{x:2,y:78},{x:3,y:95},{x:4,y:70}],
+        points2:[{x:1,y:2},{x:2,y:18},{x:3,y:50},{x:4,y:85}]},
+      cases:[{t:"案例：单业务依赖",s:"主业到顶才找新路，已来不及。",a:"在峰值前孵化第二曲线，平滑接力增长。"}] }
+  ]}
+]};
+
+/* ---------- 自我成长（14） ---------- */
+const GROWTH = [
+  { id:"growthmindset", name:"成长型思维", tag:"能力可发展", icon:"🌟",
+    intro:"Dweck 提出：相信能力可通过努力提升的'成长型思维'，比认为天赋固定的'固定型思维'更能带来长期成就与抗挫力。",
+    points:[{h:"能力可塑",p:"大脑像肌肉，练习会生长。"},{h:"拥抱困难",p:"把挑战当学习机会。"},{h:"看重过程",p:"努力、策略比'聪明'重要。"},{h:"从失败学习",p:"失败=信息，不是标签。"}],
+    chart:{type:"split", groups:[
+      {t:"固定型思维",items:["能力天生固定","回避挑战","遇挫=我不行","忽略反馈"]},
+      {t:"成长型思维",items:["能力可发展","主动迎难","遇挫=还没会","善用反馈"]} ]},
+    cases:[{t:"案例：学数学受挫",s:"固定型：'我天生不擅数学'→放弃。成长型：'方法不对，换种练法'。",a:"把'我不行'换成'我还没掌握'，转向提升自己。"}] },
+  { id:"habitloop", name:"习惯四步模型", tag:"提示-渴求-反应-奖赏", icon:"🔁",
+    intro:"Clear《原子习惯》提出习惯由四步循环构成：提示→渴求→反应→奖赏。想养成好习惯就让它明显、有吸引力、容易、令人满足。",
+    points:[{h:"提示 Cue",p:"触发行为的信号。"},{h:"渴求 Craving",p:"背后的动机。"},{h:"反应 Response",p:"实际执行的行为。"},{h:"奖赏 Reward",p:"获得的满足，闭合循环。"}],
+    chart:{type:"cycle"},
+    cases:[{t:"案例：建立晨跑",s:"提示=睡前摆好跑鞋；渴求=想象清醒感；反应=降低门槛；奖赏=打卡+内啡肽。",a:"四步逐一设计，习惯数周自动化。"}] },
+  { id:"eisenhower", name:"艾森豪威尔矩阵", tag:"时间管理四象限", icon:"⏱️",
+    intro:"按'重要'与'紧急'把事务分为四象限，帮助把时间从救火转向投资，减少被琐事淹没。",
+    points:[{h:"Q1 重要紧急",p:"危机、deadline，立即做。"},{h:"Q2 重要不紧急",p:"计划、学习、关系，重点投资。"},{h:"Q3 不重要紧急",p:"打断、他人急事，尽量授权。"},{h:"Q4 不重要不紧急",p:"消遣、无效事务，减少。"}],
+    chart:{type:"matrix", quad:[
+      {t:"Q1 重要紧急",c:"#dc2626",d:"立即做"},{t:"Q3 不重要紧急",c:"#f59e0b",d:"授权/少做"},
+      {t:"Q2 重要不紧急",c:"#059669",d:"重点投资"},{t:"Q4 不重要不紧急",c:"#94a3b8",d:"减少"} ]},
+    cases:[{t:"案例：重写一天",s:"原日程被微信塞满，健身读书总被挤掉。",a:"把 Q2 固定为不可侵犯时段，Q3 批量处理。"}] },
+  { id:"flow", name:"心流理论", tag:"沉浸与最佳体验", icon:"🌊",
+    intro:"Csikszentmihalyi 提出：当挑战与技能相匹配且目标清晰、反馈即时时，人会进入全神贯注、忘我高效的'心流'状态。",
+    points:[{h:"挑战≈技能",p:"两者匹配易入流。"},{h:"目标清晰",p:"知道做什么、做到啥样。"},{h:"即时反馈",p:"马上知道做得如何。"},{h:"全神贯注",p:"自我意识消失。"}],
+    chart:{type:"channel"},
+    cases:[{t:"案例：编程入流",s:"任务难度刚超水平、需求明确、运行即反馈，连做3小时不觉饿。",a:"微调难度与反馈，把工作设计成可持续心流。"}] },
+  { id:"review", name:"复盘四步法", tag:"回顾-评估-分析-总结", icon:"🪞",
+    intro:"复盘（如 GRAI/回顾-评估-分析-总结）是事后结构化反思：回顾事实、评估结果、分析根因、提炼规律，把经验转化为能力。",
+    points:[{h:"回顾 Recall",p:"客观还原发生了什么。"},{h:"评估 Review",p:"对照目标看差距。"},{h:"分析 Analyze",p:"追问为什么，找根因。"},{h:"总结 Improve",p:"提炼规律、形成行动。"}],
+    chart:{type:"flow"},
+    cases:[{t:"案例：项目延期复盘",s:"回顾=变更5次；评估=延期2周；分析=缺评审；总结=加门禁。",a:"把一次失误变成流程改进，少踩同样的坑。"}] },
+  { id:"grow", name:"GROW 教练模型", tag:"教练式对话", icon:"🗣️",
+    intro:"GROW 是经典教练框架：目标 Goal、现状 Reality、方案 Options、意愿 Will，引导对方自己找到答案。",
+    points:[{h:"G 目标",p:"想达成什么。"},{h:"R 现状",p:"现在在哪里。"},{h:"O 方案",p:"有哪些选择。"},{h:"W 意愿",p:"下一步行动与承诺。"}],
+    chart:{type:"flow"},
+    cases:[{t:"案例：下属卡壳",s:"主管不直接给答案，而用 GROW 一步步问。",a:"让对方自己理清目标与方案，责任感更强。"}] },
+  { id:"kolb", name:"库尔布学习循环", tag:"经验学习四步", icon:"🔄",
+    intro:"Kolb 学习循环：具体经验→反思观察→抽象概念→主动实验，四步轮转把经验转化为能力。",
+    points:[{h:"具体经验",p:"亲身经历。"},{h:"反思观察",p:"回顾与觉察。"},{h:"抽象概念",p:"提炼规律。"},{h:"主动实验",p:"应用验证。"}],
+    chart:{type:"cycle"},
+    cases:[{t:"案例：学游泳",s:"下水呛到（经验）→想哪里错（反思）→理解换气（概念）→再练（实验）。",a:"四步循环，比只听理论学得牢。"}] },
+  { id:"covey7", name:"柯维七个习惯", tag:"高效能习惯", icon:"🌳",
+    intro:"Covey《高效能人士的七个习惯》从依赖走向独立再互赖，构建原则中心的行事体系。",
+    points:[{h:"主动积极",p:"对自己的选择负责。"},{h:"以终为始",p:"先定目标再行动。"},{h:"要事第一",p:"优先重要不紧急。"},{h:"双赢思维",p:"寻求互利。"},{h:"知彼解己",p:"先理解再被理解。"},{h:"统合综效",p:"1+1>2 协作。"},{h:"不断更新",p:"投资自己。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：忙而无效",s:"天天救火，重要事总排后。",a:"用'要事第一'把时间投向 Q2，效能翻倍。"}] },
+  { id:"sbi", name:"SBI 反馈模型", tag:"情境-行为-影响", icon:"💡",
+    intro:"SBI 让反馈客观可接收：先说情境 Situation、再说具体行为 Behavior、最后讲影响 Impact，避免贴标签。",
+    points:[{h:"S 情境",p:"何时何地。"},{h:"B 行为",p:"可观察的动作。"},{h:"I 影响",p:"对团队/结果的影响。"},{h:"对事不对人",p:"描述行为非评价。"}],
+      chart:{type:"flow"},
+    cases:[{t:"案例：反馈总吵架",s:"'你态度差'一出口对方就炸。",a:"改成'昨会(S)你打断(B)，导致方案没听完(I)'，对方更易接受。"}] },
+  { id:"pyramid", name:"金字塔原理（MECE）", tag:"结论先行·不重不漏", icon:"🔺",
+    intro:"金字塔原理主张结论先行、以上统下；MECE 要求'相互独立、完全穷尽'，让表达与拆解都清晰无漏洞。",
+    points:[{h:"结论先行",p:"先给观点再论证。"},{h:"以上统下",p:"上层概括下层。"},{h:"MECE",p:"相互独立不重叠。"},{h:"完全穷尽",p:"不遗漏关键项。"}],
+    chart:{type:"split", groups:[
+      {t:"金字塔结构",items:["顶层结论","下层论据支撑","纵向问答","横向归类"]},
+      {t:"MECE 原则",items:["Mutually 独立","Exhaustively 穷尽","不重不漏","干净切分"]} ]},
+    cases:[{t:"案例：汇报被否",s:"讲了十分钟背景，领导没抓住重点。",a:"先抛结论，再用 MECE 的三点支撑，10秒抓住人。"}] },
+  { id:"firstprinciples", name:"第一性原理思维", tag:"拆解到本质", icon:"⚛️",
+    intro:"第一性原理把问题拆解到最基本的真理，再由此重构，而非依赖类比与既有经验。",
+    points:[{h:"类比思维",p:"参照既有方案。"},{h:"拆解本质",p:"追到不可再分的事实。"},{h:"重构方案",p:"从基本真理重组。"},{h:"质疑假设",p:"挑战'向来如此'。"}],
+      chart:{type:"split", groups:[
+        {t:"类比思维",items:["借鉴别人做法","快但受限","易随大流"]},
+      {t:"第一性原理",items:["拆到基本事实","从零重构","可能颠覆"]} ]},
+    cases:[{t:"案例：电池太贵",s:"别人都说电池贵只能接受。",a:"拆到原材料成本，发现可重组供应链大幅降本（如马斯克）。"}] },
+  { id:"goldencircle", name:"黄金圈思维", tag:"Why-How-What", icon:"⭕",
+    intro:"Simon Sinek 的黄金圈：先问 Why（为什么），再 How（怎么做），最后 What（做什么），由内而外激发认同。",
+    points:[{h:"Why 为什么",p:"信念与初心。"},{h:"How 怎么做",p:"差异化的方式。"},{h:"What 做什么",p:"具体产品。"},{h:"由内而外",p:"Why 驱动 What。"}],
+    chart:{type:"pyramid", levels:[{l:"Why 为什么",s:"信念与初心"},{l:"How 怎么做",s:"差异化方式"},{l:"What 做什么",s:"具体产品"}]},
+    cases:[{t:"案例：卖不动",s:"只讲产品参数（What），用户无感。",a:"先讲 Why（我们相信什么），用户因认同而买。"}] },
+  { id:"deliberate", name:"刻意练习", tag:"有目的的练习", icon:"🎯",
+    intro:"Ericsson 提出刻意练习：在舒适区外、有明确目标、极度专注并及时反馈地练习，远胜盲目重复。",
+    points:[{h:"明确目标",p:"具体可改进的点。"},{h:"极度专注",p:"高投入不自动。"},{h:"即时反馈",p:"知道错在哪。"},{h:"舒适区外",p:"略超当前水平。"}],
+    chart:{type:"cycle"},
+    cases:[{t:"案例：十年仍平庸",s:"同动作重复十年，无长进。",a:"换成有目标、有反馈、略超能力的练习，进步才发生。"}] },
+  { id:"feynman", name:"费曼学习法", tag:"以教代学", icon:"📣",
+    intro:"费曼学习法：选概念→用大白话说给小白听→卡壳处即漏洞→回头补强并简化，检验真懂与否。",
+    points:[{h:"选概念",p:"挑要学的主题。"},{h:"教别人",p:"用通俗话讲。"},{h:"查漏洞",p:"讲不顺即没懂。"},{h:"再简化",p:"类比让外行懂。"}],
+    chart:{type:"flow"},
+    cases:[{t:"案例：看懂讲不出",s:"以为懂了，一讲就卡。",a:"用费曼法逼出盲区，补完后真懂。"}] }
+];
+
+/* ---------- 心理学（8） ---------- */
+const PSY = [
+  { id:"ebbinghaus", name:"艾宾浩斯遗忘曲线", tag:"记忆保持规律", icon:"📉",
+    intro:"艾宾浩斯发现：识记后若不复习，记忆保持率会随时间急剧下降；及时、分散的复习能显著延缓遗忘。",
+    points:[{h:"先快后慢",p:"刚学完忘得最快。"},{h:"及时复习",p:"在临界点前复习。"},{h:"分散优于集中",p:"多次短复习。"},{h:"主动提取",p:"回忆比重读有效。"}],
+    chart:{type:"line", xLabels:["20分","1时","8时","1天","2天","6天","31天"],
+      points:[{x:0,y:58},{x:1,y:44},{x:2,y:36},{x:3,y:33},{x:4,y:28},{x:5,y:25},{x:6,y:21}]},
+    cases:[{t:"案例：单词复习",s:"按曲线安排当天/第2/4/7/15天复习，每次遮中文回想。",a:"被动重读改主动回忆，在陡降区插入复习，留存大幅提升。"}] },
+  { id:"abc", name:"情绪 ABC 理论", tag:"认知决定情绪", icon:"💡",
+    intro:"Ellis 指出：不是事件 A 直接引发情绪 C，而是信念 B 决定了结果；改变非理性信念 B 就能改善情绪。",
+    points:[{h:"A 事件",p:"客观发生的事。"},{h:"B 信念",p:"对事件的解读。"},{h:"C 结果",p:"情绪与行为。"},{h:"D 辩论",p:"质疑非理性信念。"}],
+    chart:{type:"flow", steps:[
+      {l:"A 事件",d:"被领导批评"},{l:"B 信念",d:"'我太差了'"},{l:"C 结果",d:"焦虑回避"},{l:"D 辩论",d:"'一次≠全盘'"} ]},
+    cases:[{t:"案例：考试焦虑",s:"A=模考没考好；B='我肯定考不上'；C=崩溃。",a:"用 D 辩论：'暴露薄弱点正好补强'，转为行动。"}] },
+  { id:"big5", name:"大五人格模型", tag:"OCEAN 五维度", icon:"🧩",
+    intro:"大五人格用开放性、尽责性、外向性、宜人性、神经质五个维度描述个体差异，是学界最被广泛接受的人格框架。",
+    points:[{h:"O 开放性",p:"好奇、接纳新经验。"},{h:"C 尽责性",p:"自律、可靠。"},{h:"E 外向性",p:"热情、社交获取能量。"},{h:"A 宜人性",p:"信任、合作。"},{h:"N 神经质",p:"情绪不稳定性。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：团队搭配",s:"攻坚组：高尽责管进度、高开放出创意、低神经稳场面。",a:"按特质匹配任务，减少摩擦提升效能。"}] },
+  { id:"system12", name:"双重加工理论", tag:"系统1与系统2", icon:"⚡",
+    intro:"Kahneman 提出人脑有两套思维：系统1快速直觉、系统2缓慢理性。多数误判来自系统1的直觉偏差。",
+    points:[{h:"系统1 快思考",p:"自动、直觉、省力。"},{h:"系统2 慢思考",p:"理性、分析、费力。"},{h:"默认依赖",p:"大脑倾向省能。"},{h:"刻意调用",p:"重要事启动系统2。"}],
+    chart:{type:"split", groups:[
+      {t:"系统1 快思考",items:["直觉自动","快速省力","易受偏差","例：认熟人"]},
+      {t:"系统2 慢思考",items:["理性分析","缓慢费力","更准确","例：算17×24"]} ]},
+    cases:[{t:"案例：投资追涨",s:"股价暴涨（系统1怕错过→冲动买）。",a:"用系统2 复核估值现金流，避直觉偏差。"}] },
+  { id:"maslow", name:"马斯洛需求层次", tag:"动机金字塔", icon:"🔺",
+    intro:"马斯洛把需求由低到高分为五层：生理、安全、归属、尊重、自我实现，通常低层满足后才追求更高层。",
+    points:[{h:"自我实现",p:"发挥潜能。"},{h:"尊重",p:"成就与被认可。"},{h:"归属与爱",p:"社交与亲密。"},{h:"安全",p:"稳定与保障。"},{h:"生理",p:"生存基础。"}],
+    chart:{type:"pyramid", levels:[{l:"自我实现",s:"发挥潜能"},{l:"尊重",s:"成就认可"},{l:"归属与爱",s:"社交亲密"},{l:"安全",s:"稳定保障"},{l:"生理",s:"生存基础"}]},
+    cases:[{t:"案例：员工离职",s:"薪资满足但缺归属感与认可。",a:"激励不能只盯钱，要同步满足高阶需求。"}] },
+  { id:"structinterview", name:"结构化面试模型", tag:"标准化选人", icon:"🧱",
+    intro:"结构化面试预先设定维度与评分标准、对所有候选人问相同问题，降低主观偏差、提升预测效度。",
+    points:[{h:"维度预设",p:"先定考察能力。"},{h:"行为锚定",p:"用行为等级量表。"},{h:"标准化提问",p:"同题同序。"},{h:"统一评分",p:"减少主观。"}],
+    chart:{type:"split", groups:[
+      {t:"结构化",items:["预设维度","统一问题","行为锚定量表","可比性强"]},
+      {t:"非结构化",items:["临场发挥","各问各的","凭印象","偏差大"]} ]},
+    cases:[{t:"案例：面试凭感觉",s:"两位面试官给同一人打分差很多。",a:"用结构化维度与锚定量表，评分更可比可信。"}] },
+  { id:"iceberg", name:"胜任力冰山模型", tag:"显性隐性素质", icon:"🧊",
+    intro:"冰山模型把胜任力分为水上（知识、技能，易培养）与水下（角色、自我形象、特质、动机，难改变却更关键）。",
+    points:[{h:"知识",p:"知道什么（水上）。"},{h:"技能",p:"会做什么（水上）。"},{h:"特质/动机",p:"深层的为什么（水下）。"},{h:"深水更关键",p:"动机特质定长期。"}],
+    chart:{type:"pyramid", levels:[{l:"知识·技能",s:"水上：易识别培养"},{l:"角色·自我形象",s:"水下：较稳定"},{l:"特质·动机",s:"水下：最难改变却最关键"}]},
+    cases:[{t:"案例：高材生不理想",s:"名校背景（水上）好，但深层动机不匹配。",a:"选拔要看水下部分，尤其是动机与特质。"}] },
+  { id:"star", name:"STAR 面试法", tag:"讲清一段经历", icon:"⭐",
+    intro:"STAR 用情境 Situation、任务 Task、行动 Action、结果 Result 结构化讲述经历，让回答有事实、可验证。",
+    points:[{h:"S 情境",p:"背景与挑战。"},{h:"T 任务",p:"你的目标。"},{h:"A 行动",p:"你具体做了啥。"},{h:"R 结果",p:"量化成果与收获。"}],
+    chart:{type:"flow"},
+    cases:[{t:"案例：回答太虚",s:"'我带团队取得了成功'无细节。",a:"用 STAR 讲清情境-任务-行动-结果，可信度大增。"}] }
+];
+
+/* ============ 模型详解（每个模型的详细说明，渲染“模型详解”卡片） ============ */
+const DETAILS = {
+  /* ---- 管理学 · 战略与竞争分析 ---- */
+  "fiveforces":"波特五力由迈克尔·波特于1979年提出，用于判断一个行业的长期盈利潜力。它认为行业利润被五种竞争力量共同挤压：上游供应商、下游购买者、潜在进入者、替代品，以及现有竞争者之间的厮杀。分析时应逐项评估'谁的议价能力强、哪个力量在恶化'，从而找到最薄弱的环节去规避或建立壁垒。注意：五力是行业结构分析，不等于企业自身战略，需结合内部能力一起看。",
+  "valuechain":"价值链由波特提出，把企业活动拆成基本活动（进料、生产、出货、营销、服务）与支持活动（人事、研发、采购、基建）。其核心思想是：竞争优势来自某些环节比对手做得更出色、更能创造价值。使用时先画出全链路，再用'哪些环节客户愿付溢价、哪些只是成本'来定位发力点。常见误区是把所有环节平均用力，或只盯生产成本而忽略服务、品牌等隐性价值环节。",
+  "pestel":"PESTEL 是宏观环境扫描工具，覆盖政治、经济、社会、技术、环境、法律六类外部因素，常用于战略规划、市场进入与风险评估。它帮你跳出企业自身、看见大势：政策风向、消费代际变化、技术颠覆、合规红线等。适合在定战略、出海、转型前做一次系统扫描。注意：PESTEL 只列有哪些影响因素，不判影响多大，需结合权重与情景判断，否则容易列一堆无关项。",
+  "blueocean":"蓝海战略（W. Chan Kim 与 Renée Mauborgne）主张避开血腥竞争的红海，通过价值创新同时追求差异化与低成本，开创没有对手的新需求空间。四步动作框架（剔除-减少-增加-创造）是落地核心：剔除行业习以为常的冗余、减少过度竞争元素、增加买家真正看重的、创造全新价值。适用于行业同质化严重、增长见顶时。误区是为创新而创新，却没人愿意买单。",
+  "vrio":"VRIO 由 Barney 提出，是检验资源能否成为持续竞争优势的框架。四个字母分别代表：有价值 Value、稀缺 Rarity、难以模仿 Inimitability、组织可承载 Organization。只有四项全满足，资源才是持续竞争优势；缺一项就退化为竞争优势、暂时优势或竞争均势。常用于评估核心能力、专利、品牌、数据等。误区是只看有价值就以为有优势，忽略了组织能否真正把资源用起来。",
+  "ansoff":"安索夫矩阵用现有/新产品 × 现有/新市场构成四个增长象限：市场渗透、市场开发、产品开发、多元化。它帮企业在做增长决策时先想清楚是靠老产品挖老市场，还是冒险开新线。风险从左上到右下递增，多元化最危险。适用于定年度增长方向、评估扩张路径。注意它只给方向，不评估能力是否匹配，进入新市场/新产品前需配套能力与资源分析。",
+  "positioning":"定位理论（Trout 与 Ries）认为，在信息过载时代，胜负不在工厂或市场，而在顾客心智。企业应在某个品类里占据一个清晰、差异化、能被一句话说清的位置（如安全=沃尔沃）。关键动作是找到对手强势中的弱点，给自己一个词。误区是定位模糊（什么都想占）、频繁改定位，或只做产品不思心智。定位一旦确立需长期投入守住。",
+  "genericstrategy":"波特的基本竞争战略指出，企业必须在三种通用战略中择一：成本领先、差异化、集中化（聚焦某一细分）。核心警告是夹在中间——既无成本优势也无差异，两头不靠最危险。选择取决于行业结构与自身资源。注意三种并非互斥到不能组合，但战略必须有一条清晰主线；同时追多线容易资源分散、定位失焦。",
+  "ge":"GE/麦肯锡九宫格矩阵由通用电气与麦肯锡联合开发，用于多业务组合的投资决策。它以行业吸引力（市场增长、规模、利润、政策等加权）为横轴、企业竞争力（份额、品牌、技术、渠道等加权）为纵轴，把业务落入 3×3 九宫格，按绿/黄/红三区决定投资、选择性投资、收割退出。相比 BCG 矩阵只用增长率与份额两维，它维度更丰富，更适合复杂组合。使用步骤：列出业务 → 多因素打分 → 落位 → 分配资源。误区是打分主观、不动态复盘会变僵化。",
+  /* ---- 管理学 · 组织与部门管理 ---- */
+  "orgtype":"组织结构类型决定信息、权力与协作的走向。职能制按专业（财务、研发、销售）划分，效率高但易筑部门墙；事业部制按产品/区域划分，贴近市场、决策快但资源重复；矩阵制双线汇报，兼顾专业与项目协同但管理复杂。选择应匹配战略与规模：单一业务早期用职能制，多业务扩张转事业部/矩阵。注意结构不是越先进越好，要随战略阶段演进，频繁重组反而伤组织。",
+  "flatvs":"层级与扁平化是管理幅度的两极。层级多（高耸型）命令链清晰、控制强，但信息传递慢、决策离一线远；扁平化管理层级少、信息快、授权一线，但对管理者幅度与员工自驱要求高。没有绝对优劣：小团队/创新业务适合扁平，大规模/强合规业务仍需一定层级。误区是盲目去中层导致管理者管不过来、失控，或层级过多养出官僚主义。应随规模与人才密度动态调整。",
+  "zql":"责权利对等是管理的基本原则：给一个人多大责任，就要配多大权力与相应利益，三者必须对等才能落地。有责无权推不动、有权无责乱作为、有责无利留不住人。应用在定岗定编、授权、绩效考核中：指标下达时必须同步授予资源与决策权，并把收益与贡献挂钩。常见失败是只压 KPI 不给预算/人权，结果目标必然落空。",
+  "amoeba":"阿米巴经营由稻盛和夫创立，把大企业划成多个独立核算的小单元（阿米巴），单元间按内部价格模拟交易，使每个单元都像一个小公司、人人算账。核心三要素：划小单元、内部市场化定价、经营数据透明。目的是把市场压力传导到每个细胞，激发一线主人翁意识。适用于中大型制造/服务企业想激活基层。注意内部定价若不公、核算太繁会引发内耗，需配套文化与 IT 支撑。",
+  "matrixorg":"矩阵式组织让成员同时向职能经理（管专业与资源）和项目经理（管目标与交付）双线汇报，兼顾专业深度与跨职能协同。常见于研发、工程、咨询。最大优点是资源灵活共享、项目导向；最大痛点是双老板冲突、权责不清。落地关键是明确两条线的决策权重与冲突裁决机制、项目经理与职能经理的职责切分。误区是只设矩阵不立规则，结果人人都听自己的上级，协同落空。",
+  /* ---- 管理学 · 目标与绩效管理 ---- */
+  "kpi":"KPI（关键绩效指标）用少数关键指标量化目标达成度，分滞后指标（结果，如营收、利润）与领先指标（驱动因素，如拜访量、培训时长）。好的 KPI 应少而精、可量化、可追踪。它适合成熟业务的例行监控。注意只盯滞后指标（结果）会来不及纠偏，需配领先指标提前干预；也要避免 KPI 过多变成数字游戏，或指标与战略脱节。",
+  "okr":"OKR（目标与关键结果）由 Intel 兴起、Google 发扬，用定性的目标 O（鼓舞人心）配 3-5 个量化的关键结果 KR 来对齐方向、聚焦重点。强调挑战性（达成 70% 即优秀）、公开透明、上下对齐。适合不确定高、需快速迭代的业务。与 KPI 区别：KPI 多用于考核维稳，OKR 多用于挑战突破。误区是把 OKR 当考核扣分工具、KR 写成任务清单而非结果，或上下不对齐各写各的。",
+  "bsc":"平衡计分卡（Kaplan 与 Norton）从财务、客户、内部流程、学习成长四个维度平衡评价组织，避免唯财务短视。它把战略转化为可衡量的指标体系，四层因果相连：学习成长驱动流程、流程支撑客户、客户带来财务。适用于希望战略落地、关注长期健康的组织。误区是四个维度指标堆太多失去重点，或只当考核表，没用来讲战略故事与对齐行动。",
+  "ksf":"KSF（关键成功因子）指在特定行业/业务中，决定胜负必须做好的少数几件事。比如便利店是选址与补货时效、手游是留存与社交。找出 KSF 后，把资源集中压在关键处，而非平均用力。使用是先界定在这个行业赢靠什么，再对照自身强弱。误区是 KSF 笼统（如服务好），应具体到可行动；且 KSF 随行业阶段变化，需定期重评。",
+  "onion":"目标分解（剥洋葱法）把总目标逐层拆成年度 → 季度 → 月度 → 周 → 日，让宏大目标变成每天可执行的小动作。核心是每个层次都是上一层的支撑、下一层的方向。适用于把战略/年度 OKR 落到日常。注意分解要可承诺、可检查，避免层层加码变成不可能完成的数字；同时要保留弹性，防止为完成日指标牺牲长期。",
+  "360":"360 度评估收集上级、同级、下级、自评甚至客户的全方位反馈，得到比单一上级视角更全面的绩效与发展画像。它擅长暴露盲点（自评与他评差距）。多用于发展性反馈而非纯粹奖惩。误区是当成打分手、匿名变泄愤，或评估者不熟悉被评人导致失真。须配套清晰标准、保密与反馈辅导，否则流于形式甚至伤团队。",
+  "pfm":"绩效面谈是把考核转为发展的关键场景，常用四步：准备（用数据与事例而非印象）、反馈（具体、对事不对人）、倾听（听员工视角与困难）、改进（共同定行动计划）。好的面谈让人被看见、有方向；差的变成批斗或走过场。误区是只念分数不举事例、只批评不给支持，或主管一言堂不听解释。面谈谈的是未来怎么更好，不是过去谁错了。",
+  "talent9":"麦肯锡人才九宫格（绩效-潜力九宫格）用当前绩效为横轴、未来潜力为纵轴，把人才落入 3×3 网格，用于人才盘点与差异化管理。右上超级明星（高绩效高潜力）重点保留与加速培养；左上高潜新秀需给挑战机会；右下业务专家/贡献者是稳定顶梁柱；中区中坚/核心骨干重点激励；左下问题员工需改进或淘汰。它帮管理者把模糊的人才判断变成九类可行动决策。注意潜力评估主观，需多源校准；落入网格只是起点，须配套发展计划。",
+  /* ---- 管理学 · 团队管理工具 ---- */
+  "belbin":"贝尔宾团队角色理论把团队角色分为九类：智多星（创新）、外交家（外接资源）、协调者（凝聚方向）、鞭策者（驱动节奏）、审议员（谨慎判断）、凝聚者（润滑关系）、执行者（落地）、完成者（细节把关）、专业师（技术权威）。核心洞见是高效团队靠角色互补而非全堆明星（九个智多星会吵成一团）。应用是组队前测角色、查缺口、做搭配。误区是把角色当固定标签给人贴死，忽略人可发展，或只选强角色忽视弱角色的必要性。",
+  "tuckman":"塔克曼团队发展模型提出团队经历五阶段：形成 Forming（试探依赖）、震荡 Storming（冲突显现）、规范 Norming（建立规则）、成熟 Performing（高效协同）、解散 Adjourning（收尾转交）。管理者应因阶段施法：形成期给方向、震荡期疏导冲突而非压制、规范期立约、成熟期授权。误区是把震荡期的正常冲突当成团队不行而换人，或跳过规范直接要产出，结果地动山摇。",
+  "conflict":"Thomas-Kilmann 冲突模型用坚持己见与合作两个维度，给出五种策略：竞争（高坚持低合作，紧急决断）、合作（双高，共赢解决）、妥协（各退一步）、回避（暂不涉及）、迁就（顾全关系）。没有哪种永远对，关键看情境：重要且可持续选合作，小事可迁就，紧急可竞争。误区是凡事竞争伤关系、凡事回避问题发酵，或把妥协当万能。先判断重要吗、关系重要吗再选策略。",
+  "raci":"RACI 为每一项任务/决策明确四种角色：R 负责执行 Responsible、A 问责最终 Accountable（唯一）、C 咨询 Consulted（事前征求）、I 知会 Informed（事后告知）。它消除这事谁说了算、谁来做的模糊。应用是项目职责矩阵、会议角色、流程问责。关键是每项任务必须恰好一个 A，否则责任落空；R 可以有多个。误区是人人都是 A（等于没人负责），或 C/I 过多导致低效。",
+  /* ---- 管理学 · 运营与流程管理 ---- */
+  "pdca":"PDCA（戴明环）是计划 Plan-执行 Do-检查 Check-处理 Act 的持续改进闭环，强调小步试跑、周而复始。P 定目标方案、D 小范围试行、C 对照评估、A 把有效做法标准化、无效则进入下一轮改进。适用于质量管理、流程优化、个人习惯。优势是用低成本试错降低大改风险。误区是只 P 不 A（问题反复），或一次失败就放弃，没把闭环转起来。",
+  "dmaic":"六西格玛 DMAIC 是数据驱动的质量改进方法论：定义 Define 问题与目标、测量 Measure 收集基线数据、分析 Analyze 找根因、改进 Improve 优化方案、控制 Control 固化维持。它追求把缺陷率降到百万分之三点四。适合流程稳定、波动大的问题。与 PDCA 区别是更强调统计测量与根因。误区是跳过测量凭经验，或改进后不控制导致回弹。",
+  "7wastes":"精益七浪费指生产中不创造客户价值的七类损耗：过量生产、等待、运输、过度加工、库存、动作、不良品。精益的核心就是系统性识别并消除它们。使用是到现场 Gemba 逐条对照，优先消除过量生产（其他浪费之源）。常见误区是只砍显性浪费（如库存）却放任等待与过度加工，或只为降本牺牲质量——不良品反而是最大浪费。",
+  "5s":"5S 源自日本现场的整理 Seiri、整顿 Seiton、清扫 Seiso、清洁 Seiketsu、素养 Shitsuke，打造有序、安全、高效的作业环境。前四 S 是方法与标准，最终落到素养——让员工养成习惯。适用于车间、仓库、办公室整理。价值是减少找物时间、降低差错与安全隐患。误区是只做卫生大扫除而不定置定位（整顿），或运动式搞一阵就回潮，没形成素养与标准。",
+  "vsm":"价值流图 VSM 把从接单到交付的全流程——信息流、物流、增值与非增值（等待）——画在一张图上，让端到端一目了然，暴露瓶颈与浪费。核心是区分增值时间与等待时间，多数流程等待占比极高。使用是先画现状图、算交付周期、找最大等待、再画未来图。误区是只优化加工速度却放任排队等待，整体周期毫无改善。",
+  "kanban":"看板 Kanban 源自丰田，用可视化看板与在制品 WIP 限制实现拉动式流动：下游完成才向上游拉取新任务，而非上游一股脑推。价值是任务一眼可见、瓶颈自动暴露、节奏平滑。适用于研发、运维、知识工作。关键是必须限制在制品才有用，否则只是任务墙。误区是把看板当展示板、不设上限，结果人人多任务切换、交付更慢。",
+  /* ---- 管理学 · 创新与变革管理 ---- */
+  "changecurve":"变革曲线（Kübler-Ross 适配组织变革）描述人面对变化经历否认 → 愤怒 → 讨价还价 → 抑郁 → 接受五阶段。它不是线性必达，但提示抵触是正常情绪过程。管理变革时识别员工所处阶段、用对应沟通（否认期讲清 why、愤怒期给支持而非强制）。误区是把抵触当不配合去压，反而延长曲线；或忽视情绪只推流程，变革必败。",
+  "diffusion":"创新扩散（Rogers）描述新技术/产品如何被社会采用：经历导入期（慢、风险高）、成长期（早期采用者带动）、成熟期（主流跟随）、饱和/衰退期。叠加 S 曲线可见拐点。应用是判断进入时机、制定扩散策略（找早期意见领袖）。误区是在成熟期才重金进入红利已尽，或忽略跨越鸿沟（早期尝鲜者到主流之间的断裂带）导致夭折。",
+  "designthink":"设计思维是以共情用户为核心的人本创新方法：共情 Empathize 理解真实需求、定义 Define 锁定真问题、创意 Ideate 发散、原型 Prototype 快速做样、测试 Test 验证迭代。它反对闭门造车，强调做给用户看。适用于需求不明、需突破的创新。误区是跳过共情直接想方案（做成自嗨产品），或过度调研不敢动手，迟迟不出原型。",
+  "secondcurve":"第二曲线（Handy）主张在第一曲线（当前主业）仍处高峰、资源充裕时就启动第二曲线（新增长引擎），在两条曲线重叠期平滑接力，避免盛极而衰。难点在于未衰先变的反人性。适用于增长见顶、单一业务依赖的企业/个人。误区是等到主业明显下滑才找新路，此时资源与士气都已枯竭；或第二曲线与核心能力毫无关联，胜算低。",
+  /* ---- 自我成长 ---- */
+  "growthmindset":"成长型思维（Dweck）认为能力可通过努力与策略提升，而非天生固定。它带来更强的抗挫力与学习意愿：把挑战当机会、把失败当信息。对照固定型思维（我不行 → 放弃）。培养是用暂时还没替代不会、夸努力与策略而非天赋。误区是把成长型当口号，实际仍用结果给人贴标签，或误以为努力就行而忽略方法。",
+  "habitloop":"习惯四步模型（Clear《原子习惯》）揭示习惯由提示 Cue → 渴求 Craving → 反应 Response → 奖赏 Reward 循环构成。要养成好习惯，就让它明显（提示）、有吸引力（渴求）、容易（反应）、令人满足（奖赏）；要戒除则反向——看不见、无吸引、难、不满足。应用是设计环境而非靠意志。误区是只靠打鸡血启动反应却无奖赏闭合，习惯难以自动维持。",
+  "eisenhower":"艾森豪威尔矩阵按重要与紧急把事务分四象限：Q1 重要紧急（立即做）、Q2 重要不紧急（重点投资，如计划学习关系）、Q3 不重要紧急（授权）、Q4 不重要不紧急（减少）。多数人被困在 Q1/Q3 救火，忽略了决定长期成效的 Q2。使用是每日先把 Q2 排进固定时段。误区是把紧急误判为重要，或长期逃避 Q2 导致永远被动。",
+  "flow":"心流（Csikszentmihalyi）指当挑战与技能相匹配、目标清晰、反馈即时时，人进入全神贯注、忘我高效的状态。过难焦虑、过易无聊，只有略超能力且反馈即时才入流。应用是设计工作/学习难度与即时反馈（如游戏化）。误区是以为越难越好反而制造焦虑，或环境频繁打断（多任务）永远进不了心流。",
+  "review":"复盘四步法（如 AAR 回顾-评估-分析-总结）：回顾 Recall 客观还原事实、评估 Review 对照目标看差距、分析 Analyze 追问为什么找根因、总结 Improve 提炼规律并形成行动。它把一次经验转化为可复用能力。适用于项目结束、事故、每日站会。关键是对事不对人、深挖根因而非归咎。误区是变成秋后算账批斗会，或只谈感受不找根因，复盘流于形式。",
+  "grow":"GROW 教练模型用四步引导对方自己找到答案：G 目标 Goal（想达成什么）、R 现状 Reality（现在在哪）、O 方案 Options（有哪些选择）、W 意愿 Will（下一步行动与承诺）。教练不直接给答案，而是通过提问激发对方责任感。适用于带人、辅导、自我规划。误区是管理者忍不住给建议抢了 GROW 的 O/W，下属依然不担责，或跳过现状直接想方案，方案脱离实际。",
+  "kolb":"库尔布 Kolb 经验学习循环：具体经验 Experience → 反思观察 Reflect → 抽象概念 Conceptualize → 主动实验 Experiment，四步轮转把经验变能力。它说明只经历不反思学不深、只理论不实践落不了地。应用是设计培训与实践交替。误区是学完就过（缺反思与实验），或一直看书（缺具体经验），都学不牢。",
+  "covey7":"柯维七个习惯构建从依赖到独立再到互赖的原则中心体系：主动积极、以终为始、要事第一（个人成功），双赢思维、知彼解己、统合综效（公众成功），不断更新（自我投资）。它强调先修内再连外。适用于个人效能与团队协作。误区是只学工具（要事第一）不修底层原则（主动积极），或跳过独立直接求互赖根基不稳，把双赢当妥协。",
+  "sbi":"SBI 反馈模型让反馈客观可接收：S 情境 Situation（何时何地）、B 行为 Behavior（可观察的具体动作）、I 影响 Impact（对团队/结果的影响）。它只描述行为不贴标签，降低防御。适用于绩效反馈、批评、表扬都应结构化。误区是一开口就评价你态度差（触发防御），或只说影响不举行为对方不知改哪，表扬也要用 SBI 才具体。",
+  "pyramid":"金字塔原理（Minto）主张表达与思考结论先行、以上统下、归类分组、逻辑递进。MECE 是配套原则：Mutually Exclusive 相互独立（不重叠）、Collectively Exhaustive 完全穷尽（不遗漏），常用于拆解问题。应用是汇报先抛观点再用三点 MECE 支撑；分析时干净切分。误区是背景讲十分钟领导没抓住重点，或分组既重叠又遗漏，论证站不住。",
+  "firstprinciples":"第一性原理（马斯克常用）把问题拆到最基本、不可再分的事实/真理，再由此向上重构方案，而不是依赖类比（别人都这么做）。它利于颠覆式创新。步骤是列出假设 → 追问到基本事实 → 从零重组。误区是凡事都拆解到原子级太耗成本，或把类比全盘否定——类比快而省，适合成熟场景，第一性原理适合破局。",
+  "goldencircle":"黄金圈（Sinek）用三个同心圆：Why 为什么（信念初心）→ How 怎么做（差异化方式）→ What 做什么（具体产品）。多数人从 What 向外讲，卖的是你做什么；伟大的组织由内而外，先讲 Why 来赢得认同与忠诚。应用是品牌、招聘、个人使命陈述。误区是只堆产品参数（What）用户无感，或 Why 假大空不真诚反而失信。",
+  "deliberate":"刻意练习（Ericsson）指在有明确目标、处于舒适区外、极度专注、并获得即时反馈地练习，远胜无脑重复。关键要素是定义改进点、高投入不自动、马上知道错在哪、难度略超当前。适用于技能、乐器、运动、专业能力提升。误区是把十年重复当练习（实则同一水平打转），或只练已会的（流畅陷阱），不碰薄弱处。",
+  "feynman":"费曼学习法以教代学检验真懂：①选一个概念 ②用大白话讲给外行听 ③讲不顺的地方就是盲区 ④回头补强再简化（用类比）。它的威力在于输出倒逼输入，暴露伪装的理解。适用于备考、掌握新领域。误区是只看不输出误以为懂，或讲解时用术语糊弄没真简化——术语堆砌正是没懂的信号。",
+  /* ---- 心理学 ---- */
+  "ebbinghaus":"艾宾浩斯遗忘曲线显示：识记后记忆保持率随时间急剧下降，且先快后慢——最初几小时忘得最多。对策是在陡降区前及时复习（如当天、第 2、4、7、15 天），用分散复习替代填鸭；更重要的是主动回忆（遮住答案回想）比重复阅读有效得多。误区是只在考前集中突击（学完即忘大半），或只重读不回忆错觉我会了。",
+  "abc":"情绪 ABC（Ellis，理性情绪行为疗法）：不是事件 A 直接引发情绪 C，而是你对事件的信念 B 决定了结果。改变非理性信念 B（如一次失败=我完了）就能改善情绪与行为，步骤 D 辩论即质疑该信念。应用于情绪管理、认知重构。误区是把情绪归咎于外界（都是他气我），忽略自己解读的作用，或辩论时只喊口号不找证据。",
+  "big5":"大五人格 OCEAN 用五个相对稳定的人格维度描述个体差异：开放性（好奇接纳新）、尽责性（自律可靠）、外向性（社交获取能量）、宜人性（信任合作）、神经质（情绪不稳）。它是学界最被广泛验证的框架，用于招聘、团队搭配、自我觉察。注意维度是连续谱非标签；高/低无绝对好坏，要看岗位匹配（如高尽责适合精细岗，高外向适合销售）。",
+  "system12":"双重加工理论（Kahneman《思考，快与慢》）：系统 1 快思考自动、直觉、省力但易受偏差；系统 2 慢思考理性、分析、准确但费神。大脑默认省能走系统 1，多数误判源于此。应用是重要决策（投资、用人）刻意启动系统 2 复核，识别常见偏差（锚定、损失厌恶）。误区是以为自己总理性，或凡事都系统 2 太耗神，应区分何时该慢下来。",
+  "maslow":"马斯洛需求层次把动机由低到高分为生理、安全、归属与爱、尊重、自我实现五层，通常低层满足后才追求高层（但非绝对阶梯）。应用是管理激励要看员工当前缺哪层——基层先给薪资安全，再给认可归属感，再到成长。误区是只盯钱（生理）忽略归属与尊重，或假设人人都先要自我实现；现代研究也提示需求可并存而非严格递进。",
+  "structinterview":"结构化面试预先设定考察维度与评分标准，对所有候选人问相同问题、按统一锚定量表打分，显著降低晕轮、首因等主观偏差，提升预测效度（比非结构化高很多）。关键是基于岗位胜任力出题、用行为/情境题、多人独立评分。误区是问题太空泛（你最大优点），或虽有维度但打分凭印象无锚定，依然不可比。",
+  "iceberg":"胜任力冰山模型（McClelland）把素质分水上/水下：水上知识、技能易识别易培养；水下角色定位、自我形象、特质、动机难改变却更决定长期绩效。选拔与发展应既看水上更看水下，尤其动机与特质。误区是只认学历证书（水上）忽视深层动机，招来好看不好用的人，或以为水下不能评估——可用行为面试与测评逼近。",
+  "star":"STAR 面试法用情境 Situation 背景、任务 Task 目标、行动 Action 你具体做了什么、结果 Result 量化成果，结构化讲述一段经历，让回答有事实、可验证、难造假。候选人用它组织回答；面试官用它深挖。误区是只讲团队成果不提我做了啥（Result 无个人贡献），或 Result 无量化（取得了成功），或 S/T 冗长淹没 A。"
+};
+
+/* 统一为 {management, psychology, growth} 供渲染 */
+const MODELS = {
+  management: MGMT.subcats.flatMap(s=>s.models.map(m=>({...m, subcat:s.name}))),
+  psychology: PSY,
+  growth: GROWTH
+};
+
+/* ============ 图表渲染 ============ */
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+const PAL=["#2563eb","#7c3aed","#db2777","#059669","#f59e0b","#0ea5e9","#ef4444","#14b8a6","#a855f7"];
+function pal(i){return PAL[i%PAL.length];}
+
+function renderChart(cfg,m){
+  const c=Object.assign({},cfg);
+  if(cfg.type==="bar" && !cfg.items) c.items=m.points.map((p,i)=>({label:p.h,value:i+1,color:pal(i)}));
+  if((cfg.type==="flow"||cfg.type==="cycle") && !cfg.steps) c.steps=m.points.map(p=>({l:p.h,d:p.p}));
+  if(cfg.type==="pyramid" && !cfg.levels) c.levels=[...m.points].reverse().map(p=>({l:p.h,s:p.p}));
+  switch(c.type){
+    case "bar":return svgBar(c);
+    case "matrix":return svgMatrix(c);
+    case "cycle":return svgCycle(c);
+    case "split":return svgSplit(c);
+    case "flow":return svgFlow(c);
+    case "line":return svgLine(c);
+    case "pyramid":return svgPyramid(c);
+    case "channel":return svgChannel(c);
+    case "ninebox":return svgNinebox(c);
+    default:return "";
+  }
+}
+
+function svgBar(cfg){
+  const w=640,h=360,pad=46;
+  const max=cfg.max||Math.max(...cfg.items.map(i=>i.value));
+  const n=cfg.items.length, gap=(w-pad*2)/n, bw=gap*0.6;
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'')}">`;
+  for(let g=0;g<=4;g++){const y=pad+(h-pad*2)*g/4;const val=Math.round(max*(1-g/4));
+    s+=`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="#eef2f7"/>`;
+    s+=`<text x="${pad-8}" y="${y+4}" text-anchor="end" font-size="11" fill="#94a3b8">${val}</text>`;}
+  cfg.items.forEach((it,i)=>{const x=pad+gap*i+(gap-bw)/2;const bh=(h-pad*2)*it.value/max;const y=h-pad-bh;
+    s+=`<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="7" fill="${it.color}"/>`;
+    s+=`<text x="${x+bw/2}" y="${y-8}" text-anchor="middle" font-size="13" font-weight="700" fill="#334155">${it.value}${cfg.unit||""}</text>`;
+    s+=`<text x="${x+bw/2}" y="${h-pad+20}" text-anchor="middle" font-size="12.5" fill="#475569">${esc(it.label)}</text>`;});
+  s+=`</svg>`;return s;
+}
+function svgMatrix(cfg){
+  const w=620,h=420,pad=20,cx=w/2,cy=h/2+10;const q=cfg.quad;
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'')}">`;
+  const quads=[{x:pad,y:pad,w:cx-pad-6,h:cy-pad-6,c:q[0]},{x:cx+6,y:pad,w:w-cx-6-pad,h:cy-pad-6,c:q[1]},
+    {x:pad,y:cy+6,w:cx-pad-6,h:h-cy-6-pad,c:q[2]},{x:cx+6,y:cy+6,w:w-cx-6-pad,h:h-cy-6-pad,c:q[3]}];
+  quads.forEach(qd=>{s+=`<rect x="${qd.x}" y="${qd.y}" width="${qd.w}" height="${qd.h}" rx="12" fill="${qd.c.c}1a" stroke="${qd.c.c}" stroke-width="1.5"/>`;
+    s+=`<text x="${qd.x+qd.w/2}" y="${qd.y+30}" text-anchor="middle" font-size="16" font-weight="800" fill="${qd.c.c}">${esc(qd.c.t)}</text>`;
+    s+=`<text x="${qd.x+qd.w/2}" y="${qd.y+52}" text-anchor="middle" font-size="12" fill="${qd.c.c}">${esc(qd.c.d)}</text>`;});
+  s+=`</svg>`;return s;
+}
+function svgCycle(cfg){
+  const w=560,h=380,cx=280,cy=200,r=120,n=cfg.steps.length;
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'')}">`;
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;const col=pal(i);
+    s+=`<circle cx="${x}" cy="${y}" r="56" fill="${col}" opacity="0.92"/>`;
+    s+=`<text x="${x}" y="${y-4}" text-anchor="middle" font-size="13.5" font-weight="800" fill="#fff">${esc(cfg.steps[i].l)}</text>`;
+    s+=`<text x="${x}" y="${y+13}" text-anchor="middle" font-size="10" fill="#fff">${esc(cfg.steps[i].d)}</text>`;
+    const a2=-Math.PI/2+(i+0.5)*2*Math.PI/n;const ax=cx+Math.cos(a2)*(r+34),ay=cy+Math.sin(a2)*(r+34);
+    s+=`<text x="${ax}" y="${ay+5}" text-anchor="middle" font-size="18" fill="#94a3b8">➜</text>`;}
+  s+=`<circle cx="${cx}" cy="${cy}" r="26" fill="#1f2937"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="11" fill="#fff">循环</text>`;
+  s+=`</svg>`;return s;
+}
+function svgSplit(cfg){
+  const w=640,h=360;const cols=cfg.groups;const cw=(w-60)/2;
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'')}">`;
+  cols.forEach((c,ci)=>{const x=20+ci*(cw+20);
+    s+=`<rect x="${x}" y="20" width="${cw}" height="${h-40}" rx="12" fill="${pal(ci)}14" stroke="${pal(ci)}" stroke-width="1.5"/>`;
+    s+=`<rect x="${x}" y="20" width="${cw}" height="34" rx="12" fill="${pal(ci)}"/>`;
+    s+=`<text x="${x+cw/2}" y="42" text-anchor="middle" font-size="13.5" font-weight="800" fill="#fff">${esc(c.t)}</text>`;
+    c.items.forEach((it,ii)=>{const iy=80+ii*((h-100)/c.items.length);
+      s+=`<circle cx="${x+22}" cy="${iy+8}" r="5" fill="${pal(ci)}"/>`;
+      s+=`<text x="${x+38}" y="${iy+13}" font-size="12.5" fill="#374151">${esc(it)}</text>`;});});
+  s+=`</svg>`;return s;
+}
+function svgFlow(cfg){
+  const w=680,h=230,n=cfg.steps.length;
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'')}">`;
+  const bw=(w-40-(n-1)*26)/n,by=55,bh=110;
+  cfg.steps.forEach((st,i)=>{const x=20+i*(bw+26);const col=pal(i);
+    s+=`<rect x="${x}" y="${by}" width="${bw}" height="${bh}" rx="12" fill="${col}" opacity="0.12" stroke="${col}" stroke-width="1.5"/>`;
+    s+=`<text x="${x+bw/2}" y="${by+32}" text-anchor="middle" font-size="14.5" font-weight="800" fill="${col}">${esc(st.l)}</text>`;
+    s+=`<text x="${x+bw/2}" y="${by+60}" text-anchor="middle" font-size="11.5" fill="#475569">${esc(st.d)}</text>`;
+    if(i<n-1)s+=`<text x="${x+bw+13}" y="${by+bh/2+6}" text-anchor="middle" font-size="20" fill="#94a3b8">➜</text>`;});
+  s+=`</svg>`;return s;
+}
+function svgLine(cfg){
+  const w=640,h=380,pad=46,yMax=cfg.yMax||100,pts=cfg.points,n=pts.length,xstep=(w-pad*2)/(n-1);
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'')}">`;
+  for(let g=0;g<=4;g++){const y=pad+(h-pad*2)*g/4;const val=Math.round(yMax*(1-g/4));
+    s+=`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="#eef2f7"/>`;
+    s+=`<text x="${pad-8}" y="${y+4}" text-anchor="end" font-size="11" fill="#94a3b8">${val}</text>`;}
+  const draw=(P,col)=>{const xy=P.map((p,i)=>[pad+xstep*i,h-pad-(h-pad*2)*p.y/yMax]);
+    let d="M"+xy.map(p=>p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" L");
+    s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="3"/>`;
+    xy.forEach((p,i)=>{s+=`<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="${col}"/>`;
+      s+=`<text x="${p[0]}" y="${p[1]-10}" text-anchor="middle" font-size="11" font-weight="700" fill="${col}">${P[i].y}</text>`;
+      s+=`<text x="${p[0]}" y="${h-pad+20}" text-anchor="middle" font-size="11" fill="#64748b">${esc(cfg.xLabels[i]||'')}</text>`;});};
+  draw(pts,"#db2777");
+  if(cfg.points2) draw(cfg.points2,"#059669");
+  s+=`</svg>`;return s;
+}
+function svgPyramid(cfg){
+  const w=560,h=400,top=50,bottom=h-40,levels=cfg.levels,n=levels.length,gap=(bottom-top)/n;
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'')}">`;
+  const cols=["#db2777","#e11d48","#be185d","#9d174d","#831843","#6b1133"];
+  for(let i=0;i<n;i++){const yb=bottom-i*gap,yt=yb-gap+6;const wb=w*0.92*(i+1)/n,wt=w*0.92*(i+0.4)/n;
+    const xb=(w-wb)/2,xt=(w-wt)/2;
+    s+=`<polygon points="${xt},${yt} ${xt+wt},${yt} ${xb+wb},${yb} ${xb},${yb}" fill="${cols[i%cols.length]}" opacity="0.9"/>`;
+    s+=`<text x="${w/2}" y="${yt+gap/2-2}" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">${esc(levels[i].l)}</text>`;
+    s+=`<text x="${w/2}" y="${yt+gap/2+15}" text-anchor="middle" font-size="11" fill="#ffe4ef">${esc(levels[i].s)}</text>`;}
+  s+=`</svg>`;return s;
+}
+function svgChannel(cfg){
+  const w=560,h=400,pad=46;
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'')}">`;
+  s+=`<line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="#cbd5e1"/>`;
+  s+=`<line x1="${pad}" y1="${h-pad}" x2="${pad}" y2="${pad}" stroke="#cbd5e1"/>`;
+  s+=`<text x="${w-30}" y="${h-pad+22}" font-size="12" fill="#64748b">技能 →</text>`;
+  s+=`<text x="14" y="${pad-10}" font-size="12" fill="#64748b">↑ 挑战</text>`;
+  const x1=pad,y1=h-pad,x2=w-pad,y2=pad,off=46;
+  s+=`<polygon points="${x1+off},${y1} ${x2},${y2} ${x2-off},${y2} ${x1},${y1-off}" fill="#059669" opacity="0.18"/>`;
+  s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#059669" stroke-width="2.5" stroke-dasharray="6 5"/>`;
+  s+=`<text x="${w/2-70}" y="${pad+30}" font-size="12" font-weight="700" fill="#7c3aed">焦虑区</text>`;
+  s+=`<text x="${w/2+30}" y="${h-pad-30}" font-size="12" font-weight="700" fill="#f59e0b">无聊区</text>`;
+  s+=`<text x="${w/2-14}" y="${h/2}" font-size="12.5" font-weight="800" fill="#059669">心流通道</text>`;
+  s+=`</svg>`;return s;
+}
+function svgNinebox(cfg){
+  const w=560,h=520,gx=80,gy=28;
+  const gw=w-gx-34, gh=h-gy-62, cw=gw/3, ch=gh/3;
+  const cells=cfg.cells; // 9 strings, row-major: top-left -> bottom-right
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(cfg.title||'九宫格矩阵')}">`;
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++){
+    const x=gx+c*cw, y=gy+r*ch;
+    const score=(2-r)+c; // 强者落在右上
+    const col= score>=3?"#16a34a": score===2?"#f59e0b":"#ef4444";
+    s+=`<rect x="${x+3}" y="${y+3}" width="${cw-6}" height="${ch-6}" rx="10" fill="${col}" opacity="0.13" stroke="${col}" stroke-width="1.4"/>`;
+    s+=`<text x="${x+cw/2}" y="${y+ch/2+5}" text-anchor="middle" font-size="13.5" font-weight="800" fill="${col}">${esc(cells[r*3+c])}</text>`;
+  }
+  s+=`<text x="${gx+gw/2}" y="${h-34}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#475569">${esc(cfg.xLabel||'')}</text>`;
+  s+=`<text x="${gx+gw/2}" y="${h-15}" text-anchor="middle" font-size="11" fill="#94a3b8">低 ←→ 高</text>`;
+  s+=`<text x="20" y="${gy+gh/2}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#475569" transform="rotate(-90 20 ${gy+gh/2})">${esc(cfg.yLabel||'')}</text>`;
+  s+=`</svg>`;return s;
+}
+
+/* ============ 练习题生成器（每模型 30 道案例分析选择题） ============ */
+const SCENARIOS=[
+  "某创业公司面对行业巨头碾压，市场份额持续下滑",
+  "团队连续两次项目延期，成员士气低落、互相埋怨",
+  "新员工培训结束却仍不会独立操作系统",
+  "产品功能很多，但用户留存率一直很低",
+  "部门之间互相推诿，客户投诉长期无人跟进",
+  "个人想转行，但害怕从零开始、沉没成本太高",
+  "复习了很多遍，关键知识点还是记不住",
+  "会议开了一个小时，却没有形成任何决策",
+  "客户中途变更需求，团队一时措手不及",
+  "绩效一直很好的骨干突然提出了离职",
+  "新系统刚上线，一线操作错误率居高不下",
+  "跨部门项目进度失控，谁都说'不归我管'",
+  "想养成运动习惯，却总是三天打鱼两天晒网",
+  "面对两难选择，迟迟下不了决心",
+  "下属工作态度积极，但方法始终不对路",
+  "能看懂教材，却怎么也讲不清楚给别人听",
+  "企业增长停滞，沿用多年的打法开始失效",
+  "团队目标高度一致，执行起来却一片混乱",
+  "竞品突然降价，自家产品优势被快速侵蚀",
+  "公司想降本，却不知从哪个环节下手最有效"
+];
+const STEMS=[
+  "此时运用该模型，最应优先把握的关键点是？",
+  "结合该模型，直接决定成败的核心抓手是？",
+  "用该模型的视角看，最容易被忽视却重要的是？",
+  "按该模型分析，最匹配当前情境的做法是？"
+];
+function seeded(seed){let s=seed%2147483647;if(s<=0)s+=2147483646;return ()=>(s=s*16807%2147483647)/2147483647;}
+function genQuestions(m){
+  const pts=m.points; const labels=pts.map(p=>p.h); const descs=pts.map(p=>p.p);
+  const q=[]; let si=0;
+  const hash=m.id.split("").reduce((a,c)=>a+c.charCodeAt(0),0);
+  const rnd=seeded(hash+7);
+  const used=new Set();
+  let guard=0;
+  while(q.length<30 && guard<400){
+    guard++;
+    const sc=SCENARIOS[si%SCENARIOS.length];
+    const stem=STEMS[(si>>1)%STEMS.length];
+    const correctIdx=si%pts.length;
+    const correct=pts[correctIdx];
+    let others=pts.map((p,i)=>i).filter(i=>i!==correctIdx);
+    // 洗牌 others
+    for(let i=others.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[others[i],others[j]]=[others[j],others[i]];}
+    let opts=[correctIdx, others[0], others[1], others[2]].filter(i=>i!==undefined).map(i=>labels[i]);
+    if(opts.length<4){ // 不足4项时补通用项
+      const extra=["暂缓处理，观察后再定","交给他人代为决策","暂不行动，等上级指示"].filter(e=>!opts.includes(e));
+      while(opts.length<4 && extra.length) opts.push(extra.shift());
+    }
+    for(let i=opts.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]];}
+    const ans=opts.indexOf(labels[correctIdx]);
+    const key=si;
+    q.push({q:`${sc}。${stem}`, o:opts, a:ans, e:`依据《${m.name}》：${correct.h}——${correct.p}`});
+    si++;
+  }
+  return q;
+}
+
+/* ============ 应用状态与渲染 ============ */
+let state={cat:"management", model:null};
+const learned=new Set();
+const exState={};
+const sidebar=document.getElementById("sidebar");
+const content=document.getElementById("content");
+const taskbar=document.getElementById("taskbar");
+
+function buildTaskbar(){
+  taskbar.innerHTML=CATS.map(c=>`<div class="task" data-cat="${c.key}"><span class="ti">${c.icon}</span>${c.name}</div>`).join("");
+  taskbar.querySelectorAll(".task").forEach(t=>t.onclick=()=>selectCat(t.dataset.cat));
+}
+function firstModelId(cat){
+  if(cat==="management") return MGMT.subcats[0].models[0].id;
+  return MODELS[cat][0].id;
+}
+function selectCat(cat){
+  state.cat=cat; state.model=firstModelId(cat);
+  renderSidebar(); renderContent();
+  taskbar.querySelectorAll(".task").forEach(t=>t.classList.toggle("active",t.dataset.cat===cat));
+}
+function renderSidebar(){
+  let h="";
+  if(state.cat==="management"){
+    MGMT.subcats.forEach(sc=>{
+      h+=`<div class="subcat-h">${sc.name}</div>`;
+      h+=sc.models.map(m=>modelItemHTML(m)).join("");
+    });
+  }else{
+    h+=`<div class="subcat-h">${CATS.find(c=>c.key===state.cat).name}</div>`;
+    h+=MODELS[state.cat].map(m=>modelItemHTML(m)).join("");
+  }
+  sidebar.innerHTML=h;
+  sidebar.querySelectorAll(".model-item").forEach(el=>el.onclick=()=>{
+    state.model=el.dataset.id; renderSidebar(); renderContent();
+  });
+}
+function modelItemHTML(m){
+  return `<div class="model-item ${m.id===state.model?'active':''} ${learned.has(m.id)?'learned':''}" data-id="${m.id}">
+      <div class="ic">${m.icon}</div>
+      <div><div class="nm">${m.name}</div><div class="tg">${m.tag}</div></div>
+      <div class="done">✓已学</div></div>`;
+}
+function getModel(id){for(const k in MODELS){const f=MODELS[k].find(m=>m.id===id);if(f)return f;}return null;}
+
+function renderContent(){
+  const m=getModel(state.model);
+  if(!m){content.innerHTML=welcomeHTML();return;}
+  const catName=CATS.find(c=>c.key===state.cat).name;
+  content.innerHTML=`
+    <div class="crumb">${catName}${m.subcat?' / '+m.subcat:''} / ${m.name}</div>
+    <div class="m-title">${m.icon} ${m.name}
+      <span class="m-tag" style="background:var(${state.cat==='management'?'--mgmt':state.cat==='psychology'?'--psy':'--grow'})1a;color:var(${state.cat==='management'?'--mgmt':state.cat==='psychology'?'--psy':'--grow'})">${m.tag}</span>
+    </div>
+    <p class="m-intro">${m.intro}</p>
+    <div class="tabs">
+      <div class="tab active" data-p="learn">📖 介绍与学习</div>
+      <div class="tab" data-p="quiz">✍️ 练习题（30）</div>
+    </div>
+    <div class="tabpane active" id="pane-learn">${learnPane(m)}</div>
+    <div class="tabpane" id="pane-quiz">${quizPane(m)}</div>`;
+  content.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+    content.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    content.querySelectorAll(".tabpane").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("pane-"+(t.dataset.p==="learn"?"learn":"quiz")).classList.add("active");
+  });
+  bindQuiz(m); updateStats();
+}
+function learnPane(m){
+  let h="";
+  if(DETAILS[m.id]) h+=`<div class="card"><h3>📚 模型详解</h3><div class="detail">${esc(DETAILS[m.id])}</div></div>`;
+  h+=`<div class="points">`+m.points.map(p=>`<div class="point"><h4>${p.h}</h4><p>${p.p}</p></div>`).join("")+`</div>`;
+  h+=`<div class="card"><h3>📊 模型图解</h3><div class="sub">${m.chart.type==='matrix'?'结构示意':m.chart.type==='pyramid'?'层次示意':m.chart.type==='channel'?'状态通道':'核心框架'}</div>
+      <div class="chart-wrap">${renderChart(m.chart,m)}</div></div>`;
+  h+=`<div class="card"><h3>📌 学习案例</h3><div class="sub">结合真实场景理解模型</div>`+
+      m.cases.map(c=>`<div class="case"><div class="ct">${c.t}</div><div class="cs">场景：${c.s}</div><div class="ca">分析：${c.a}</div></div>`).join("")+`</div>`;
+  return h;
+}
+function quizPane(m){
+  if(!exState[m.id]) exState[m.id]={answered:new Set(),correct:0};
+  const qs=m._q||(m._q=genQuestions(m));
+  const st=exState[m.id];
+  const total=qs.length;
+  let h=`<div class="ex-head">
+      <div class="ex-score">已完成 <b id="exDone">${st.answered.size}</b>/${total} 题 · 正确率 <b id="exAcc">${st.answered.size?Math.round(st.correct/st.answered.size*100):0}%</b></div>
+      <div class="ex-progress"><i id="exBar" style="width:${st.answered.size/total*100}%"></i></div>
+      <button class="btn-reset" id="exReset">重置本题练习</button></div>`;
+  h+=qs.map((ex,i)=>`<div class="quiz" data-i="${i}">
+      <div class="q">${i+1}. ${ex.q}</div>
+      <div class="opts">${ex.o.map((o,oi)=>`<div class="opt" data-oi="${oi}"><span class="k">${String.fromCharCode(65+oi)}</span><span>${o}</span></div>`).join("")}</div>
+      <div class="explain" id="ex-${i}"></div></div>`).join("");
+  return h;
+}
+function bindQuiz(m){
+  const pane=document.getElementById("pane-quiz"); if(!pane)return;
+  const qs=m._q||(m._q=genQuestions(m));
+  const st=exState[m.id]||(exState[m.id]={answered:new Set(),correct:0});
+  pane.querySelectorAll(".quiz").forEach(q=>{
+    const i=+q.dataset.i; const ex=qs[i];
+    q.querySelectorAll(".opt").forEach(opt=>opt.onclick=()=>{
+      if(st.answered.has(i))return;
+      const oi=+opt.dataset.oi; const correct=oi===ex.a;
+      q.querySelectorAll(".opt").forEach(o=>{o.classList.add("locked");if(+o.dataset.oi===ex.a)o.classList.add("correct");});
+      if(!correct)opt.classList.add("wrong");
+      const box=document.getElementById("ex-"+i);
+      box.className="explain show "+(correct?"ok":"no");
+      box.innerHTML=(correct?"✅ 回答正确！ ":"❌ 正确答案："+String.fromCharCode(65+ex.a)+"。 ")+ex.e;
+      st.answered.add(i); if(correct)st.correct++;
+      learned.add(m.id); updateExScore(m); renderSidebar(); updateStats();
+    });
+  });
+  const reset=document.getElementById("exReset");
+  if(reset)reset.onclick=()=>{exState[m.id]={answered:new Set(),correct:0};renderContent();};
+}
+function updateExScore(m){
+  const st=exState[m.id]; const qs=m._q||[]; if(!st)return; const total=qs.length;
+  const done=document.getElementById("exDone"),acc=document.getElementById("exAcc"),bar=document.getElementById("exBar");
+  if(done)done.textContent=st.answered.size;
+  if(acc)acc.textContent=(st.answered.size?Math.round(st.correct/st.answered.size*100):0)+"%";
+  if(bar)bar.style.width=(st.answered.size/total*100)+"%";
+}
+function updateStats(){
+  const total=Object.values(MODELS).reduce((a,b)=>a+b.length,0);
+  document.getElementById("stTotal").textContent=total;
+  document.getElementById("stLearned").textContent=learned.size;
+  let done=0,correct=0;Object.values(exState).forEach(s=>{done+=s.answered.size;correct+=s.correct;});
+  document.getElementById("stAcc").textContent=done?Math.round(correct/done*100)+"%":"—";
+}
+function welcomeHTML(){
+  let h=`<div class="welcome"><div class="big">👋 欢迎来到学习管理工作台</div>
+    <p>请选择下方任务栏的模型分类，开始你的模型化学习之旅。共 ${Object.values(MODELS).reduce((a,b)=>a+b.length,0)} 个模型，每模型 30 道案例分析练习题。</p>
+    <div class="cat-cards">`;
+  h+=CATS.map(c=>`<div class="cat-card" data-cat="${c.key}"><div class="ci">${c.icon}</div><h3>${c.name}</h3>
+      <p>点击进入，浏览模型、图表案例并做练习。</p><div class="cnt">共 ${MODELS[c.key].length} 个模型</div></div>`).join("");
+  h+=`</div></div>`; return h;
+}
+
+/* ============ 启动 + PWA ============ */
+buildTaskbar();
+selectCat("management");
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});
+}
+</script>
+</body>
+</html>
