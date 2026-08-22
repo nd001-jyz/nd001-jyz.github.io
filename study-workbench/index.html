@@ -125,9 +125,11 @@
   .task .ti{font-size:18px}
   .task:hover{transform:translateY(-2px)}
   .task.active{color:#fff;border-color:transparent}
+  .task[data-cat="home"].active{background:#6366f1}
   .task[data-cat="management"].active{background:var(--mgmt)}
   .task[data-cat="psychology"].active{background:var(--psy)}
   .task[data-cat="growth"].active{background:var(--grow)}
+  .task[data-cat="errors"].active{background:#dc2626}
 
   .welcome{text-align:center;padding:50px 16px;color:var(--muted)}
   .welcome .big{font-size:26px;margin-bottom:8px}
@@ -146,15 +148,58 @@
     .content{padding:14px 14px 20px}
     header p{display:none}
     .m-title{font-size:18px}
-    .task{padding:9px 14px;font-size:13px;flex:1;justify-content:center}
-    .taskbar{gap:6px}
+    .task{padding:9px 10px;font-size:12px;flex:1;justify-content:center;gap:4px}
+    .task .ti{font-size:15px}
+    .taskbar{gap:5px}
     .points{grid-template-columns:1fr 1fr}
     .cat-cards{flex-direction:column;align-items:center}
   }
   @media(max-width:430px){
     .points{grid-template-columns:1fr}
-    .task .ti{font-size:16px}
   }
+  @media(max-width:430px){
+    .task{padding:8px 6px;font-size:11px}
+    .task .ti{font-size:14px}
+    .task span:not(.ti){font-size:10px}
+  }
+
+  /* 首页进度卡片 */
+  .home-wrap{padding:8px 0}
+  .home-section{margin-bottom:20px}
+  .home-section > h2{font-size:16px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .progress-ring{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin-bottom:10px}
+  .ring-svg{flex-shrink:0}
+  .ring-info h3{font-size:14px;font-weight:700;margin-bottom:2px}
+  .ring-info p{font-size:12px;color:var(--muted);line-height:1.5}
+  .ring-info .ring-num{font-size:22px;font-weight:900}
+  .home-model-list{display:none;flex-direction:column;gap:6px;margin-top:8px}
+  .home-model-list.show{display:flex}
+  .home-model-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer;transition:.15s}
+  .home-model-row:hover{background:#f1f5f9}
+  .home-model-row .hmi{font-size:15px;width:26px;text-align:center}
+  .home-model-row .hmn{font-size:12.5px;font-weight:600;flex:1}
+  .home-model-row .hmp{font-size:11px;color:var(--muted);white-space:nowrap}
+  .home-model-row .hmb{width:50px;height:6px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+  .home-model-row .hmb > i{display:block;height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);transition:.3s}
+  .home-cat-toggle{font-size:12px;color:#6366f1;cursor:pointer;padding:4px 8px;user-select:none;font-weight:600}
+
+  /* 错题集页面 */
+  .err-wrap{padding:8px 0}
+  .err-cat-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px;cursor:pointer;transition:.15s}
+  .err-cat-card:hover{transform:translateY(-2px)}
+  .err-cat-head{display:flex;align-items:center;gap:10px}
+  .err-cat-head .eci{font-size:24px}
+  .err-cat-head h3{font-size:15px;font-weight:700}
+  .err-cat-head .err-badge{margin-left:auto;background:#fef2f2;color:#dc2626;font-size:13px;font-weight:700;padding:3px 12px;border-radius:999px}
+  .err-model-list{display:none;flex-direction:column;gap:8px;margin-top:12px}
+  .err-model-list.show{display:flex}
+  .err-model-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fafafa;border:1px solid var(--line);border-radius:10px;cursor:pointer;transition:.15s}
+  .err-model-row:hover{background:#f1f5f9}
+  .err-model-row .emi{font-size:16px;width:26px;text-align:center}
+  .err-model-row .emn{font-size:12.5px;font-weight:600;flex:1}
+  .err-model-row .emc{font-size:11px;color:#dc2626;font-weight:700}
+  .err-empty{text-align:center;padding:40px 16px;color:var(--muted)}
+  .err-empty .big{font-size:30px;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -162,7 +207,7 @@
   <div class="logo">📚</div>
   <div>
     <h1>学习管理工作台</h1>
-    <p>管理学 · 心理学 · 自我成长 · 模型化学习 + 练习巩固</p>
+    <p>管理学 · 心理学 · 成长 · 模型化学习 + 练习巩固</p>
   </div>
   <div class="stats">
     <div>已学 <b id="stLearned">0</b>/<b id="stTotal">0</b></div>
@@ -180,9 +225,11 @@
 <script>
 /* ============ 数据：三类模型 ============ */
 const CATS = [
-  {key:"management", name:"管理学模型", icon:"🏢", color:"var(--mgmt)"},
-  {key:"psychology", name:"心理学模型", icon:"🧠", color:"var(--psy)"},
-  {key:"growth",     name:"自我成长模型", icon:"🌱", color:"var(--grow)"}
+  {key:"home",        name:"首页",      icon:"🏠", color:"#6366f1"},
+  {key:"management",  name:"管理学模型", icon:"🏢", color:"var(--mgmt)"},
+  {key:"psychology",  name:"心理学模型", icon:"🧠", color:"var(--psy)"},
+  {key:"growth",      name:"成长模型",   icon:"🌱", color:"var(--grow)"},
+  {key:"errors",      name:"错题集",     icon:"❌", color:"#dc2626"}
 ];
 
 /* ---------- 管理学：6 大子分类（共35） ---------- */
@@ -821,15 +868,67 @@ function genQuestions(m){
 }
 
 /* ============ 应用状态与渲染 ============ */
-let state={cat:"management", model:null};
+let state={cat:"home", model:null};
 const learned=new Set();
-const exState={};
+const exState={};  // {modelId: {answered:Set, correct:int, wrong:Set}}
+
+/* ---- localStorage 持久化 ---- */
+const LS_KEY="study_wb_v1";
+function saveProgress(){
+  try{
+    const data={learned:[...learned], exState:{}};
+    for(const k in exState){
+      const s=exState[k];
+      data.exState[k]={answered:[...s.answered], correct:s.correct, wrong:s.wrong?[...s.wrong]:[]};
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }catch(e){}
+}
+function loadProgress(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    if(data.learned) data.learned.forEach(id=>learned.add(id));
+    if(data.exState){
+      for(const k in data.exState){
+        const d=data.exState[k];
+        exState[k]={answered:new Set(d.answered), correct:d.correct||0, wrong:new Set(d.wrong||[])};
+      }
+    }
+  }catch(e){}
+}
+loadProgress();
+
 const sidebar=document.getElementById("sidebar");
 const content=document.getElementById("content");
 const taskbar=document.getElementById("taskbar");
 
+/* ---- 统计辅助 ---- */
+function catStats(cat){
+  const models=MODELS[cat];
+  let learnedCount=0, totalAnswered=0, totalCorrect=0, totalQ=0;
+  models.forEach(m=>{
+    if(learned.has(m.id))learnedCount++;
+    const st=exState[m.id];
+    totalQ+=30;
+    if(st){totalAnswered+=st.answered.size; totalCorrect+=st.correct;}
+  });
+  return {learned:learnedCount, total:models.length, answered:totalAnswered, correct:totalCorrect, totalQ, acc: totalAnswered?Math.round(totalCorrect/totalAnswered*100):0};
+}
+function modelStats(id){
+  const st=exState[id]||{answered:new Set(),correct:0,wrong:new Set()};
+  return {answered:st.answered.size, correct:st.correct, total:30, acc:st.answered.size?Math.round(st.correct/st.answered.size*100):0, learned:learned.has(id), wrong:st.wrong?st.wrong.size:0};
+}
+function allModels(){
+  const arr=[];
+  for(const k in MODELS) MODELS[k].forEach(m=>arr.push({...m,cat:k}));
+  return arr;
+}
+
+/* ---- 任务栏 ---- */
 function buildTaskbar(){
-  taskbar.innerHTML=CATS.map(c=>`<div class="task" data-cat="${c.key}"><span class="ti">${c.icon}</span>${c.name}</div>`).join("");
+  taskbar.innerHTML=CATS.map(c=>`<div class="task" data-cat="${c.key}"><span class="ti">${c.icon}</span><span>${c.name}</span></div>`).join("");
   taskbar.querySelectorAll(".task").forEach(t=>t.onclick=()=>selectCat(t.dataset.cat));
 }
 function firstModelId(cat){
@@ -837,10 +936,19 @@ function firstModelId(cat){
   return MODELS[cat][0].id;
 }
 function selectCat(cat){
-  state.cat=cat; state.model=firstModelId(cat);
-  renderSidebar(); renderContent();
+  state.cat=cat;
+  if(cat==="home"||cat==="errors"){
+    state.model=null;
+    sidebar.innerHTML="";
+    renderContent();
+  }else{
+    state.model=firstModelId(cat);
+    renderSidebar(); renderContent();
+  }
   taskbar.querySelectorAll(".task").forEach(t=>t.classList.toggle("active",t.dataset.cat===cat));
 }
+
+/* ---- 侧栏（仅模型板块用） ---- */
 function renderSidebar(){
   let h="";
   if(state.cat==="management"){
@@ -858,14 +966,18 @@ function renderSidebar(){
   });
 }
 function modelItemHTML(m){
-  return `<div class="model-item ${m.id===state.model?'active':''} ${learned.has(m.id)?'learned':''}" data-id="${m.id}">
+  const st=modelStats(m.id);
+  return `<div class="model-item ${m.id===state.model?'active':''} ${st.learned?'learned':''}" data-id="${m.id}">
       <div class="ic">${m.icon}</div>
       <div><div class="nm">${m.name}</div><div class="tg">${m.tag}</div></div>
       <div class="done">✓已学</div></div>`;
 }
 function getModel(id){for(const k in MODELS){const f=MODELS[k].find(m=>m.id===id);if(f)return f;}return null;}
 
+/* ---- 主内容渲染 ---- */
 function renderContent(){
+  if(state.cat==="home"){content.innerHTML=homeHTML(); bindHome(); return;}
+  if(state.cat==="errors"){content.innerHTML=errorsHTML(); bindErrors(); return;}
   const m=getModel(state.model);
   if(!m){content.innerHTML=welcomeHTML();return;}
   const catName=CATS.find(c=>c.key===state.cat).name;
@@ -889,51 +1001,215 @@ function renderContent(){
   });
   bindQuiz(m); updateStats();
 }
+
+/* ---- 进度环 SVG ---- */
+function ringSVG(pct,color,r){
+  r=r||52; const c=2*Math.PI*r; const off=c*(1-pct/100);
+  return `<svg class="ring-svg" width="130" height="130" viewBox="0 0 130 130">
+    <circle cx="65" cy="65" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="9"/>
+    <circle cx="65" cy="65" r="${r}" fill="none" stroke="${color}" stroke-width="9"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" stroke-linecap="round"
+      transform="rotate(-90 65 65)" style="transition:stroke-dashoffset .5s"/>
+    <text x="65" y="62" text-anchor="middle" font-size="26" font-weight="900" fill="${color}">${pct}%</text>
+    <text x="65" y="82" text-anchor="middle" font-size="11" fill="#94a3b8">完成率</text>
+  </svg>`;
+}
+
+/* ---- 首页 ---- */
+function homeHTML(){
+  const totalModels=Object.values(MODELS).reduce((a,b)=>a+b.length,0);
+  let totalLearned=0, totalAnswered=0, totalCorrect=0, totalQ=0;
+  CATS.filter(c=>MODELS[c.key]).forEach(c=>{
+    const s=catStats(c.key);
+    totalLearned+=s.learned; totalAnswered+=s.answered; totalCorrect+=s.correct; totalQ+=s.totalQ;
+  });
+  const overallPct=Math.round(totalLearned/totalModels*100);
+  const overallAcc=totalAnswered?Math.round(totalCorrect/totalAnswered*100):0;
+  let h=`<div class="home-wrap">
+    <div class="progress-ring">
+      ${ringSVG(overallPct,"#6366f1")}
+      <div class="ring-info">
+        <h3>📈 总学习进度</h3>
+        <p>已学 <span class="ring-num">${totalLearned}</span> / ${totalModels} 个模型<br>
+        答题 <b>${totalAnswered}</b> / ${totalQ} 题 · 总正确率 <span class="ring-num" style="color:#16a34a">${overallAcc}%</span></p>
+      </div>
+    </div>`;
+  // 三大板块
+  CATS.filter(c=>MODELS[c.key]).forEach(c=>{
+    const s=catStats(c.key);
+    const pct=Math.round(s.learned/s.total*100);
+    h+=`<div class="home-section">
+      <h2>${c.icon} ${c.name}
+        <span class="home-cat-toggle" data-cat="${c.key}">展开详情 ▼</span>
+        <span style="margin-left:auto;font-size:13px;color:${c.color};font-weight:700">${pct}% · 正确率 ${s.acc}%</span>
+      </h2>
+      <div class="progress-ring" style="margin-bottom:8px">
+        ${ringSVG(pct,c.color,40)}
+        <div class="ring-info">
+          <h3>${c.name}</h3>
+          <p>已学 <b>${s.learned}</b>/${s.total} 模型 · 答题 <b>${s.answered}</b>/${s.totalQ} 题 · 正确率 <b style="color:#16a34a">${s.acc}%</b></p>
+        </div>
+      </div>
+      <div class="home-model-list" data-cat="${c.key}">`;
+    // 列出板块内每个模型
+    if(c.key==="management"){
+      MGMT.subcats.forEach(sc=>{
+        h+=`<div class="subcat-h">${sc.name}</div>`;
+        sc.models.forEach(m=>{const ms=modelStats(m.id);
+          h+=homeModelRow(m,c.key,ms);});
+      });
+    }else{
+      MODELS[c.key].forEach(m=>{const ms=modelStats(m.id);
+        h+=homeModelRow(m,c.key,ms);});
+    }
+    h+=`</div></div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+function homeModelRow(m,cat,ms){
+  const pct=Math.round(ms.answered/ms.total*100);
+  return `<div class="home-model-row" data-mid="${m.id}" data-cat="${cat}">
+    <span class="hmi">${m.icon}</span>
+    <span class="hmn">${m.name}</span>
+    <span class="hmp">${ms.learned?'✓':''} ${ms.answered}/${ms.total} ${ms.acc?'· '+ms.acc+'%':''}</span>
+    <span class="hmb"><i style="width:${pct}%"></i></span>
+  </div>`;
+}
+function bindHome(){
+  content.querySelectorAll(".home-cat-toggle").forEach(t=>t.onclick=(e)=>{
+    e.stopPropagation();
+    const cat=t.dataset.cat;
+    const list=content.querySelector(`.home-model-list[data-cat="${cat}"]`);
+    if(list){list.classList.toggle("show");
+      t.textContent=list.classList.contains("show")?"收起 ▲":"展开详情 ▼";}
+  });
+  content.querySelectorAll(".home-model-row").forEach(r=>r.onclick=()=>{
+    state.cat=r.dataset.cat; state.model=r.dataset.mid;
+    renderSidebar(); renderContent();
+    taskbar.querySelectorAll(".task").forEach(t=>t.classList.toggle("active",t.dataset.cat===state.cat));
+  });
+}
+
+/* ---- 错题集 ---- */
+function errorsHTML(){
+  let h=`<div class="err-wrap"><div class="welcome" style="padding:20px 0 16px"><div class="big">❌ 错题集</div>
+    <p>这里汇总了你在练习中答错的题目。点击对应板块查看错题模型，重新学习后再做题。</p></div>`;
+  let hasErrors=false;
+  CATS.filter(c=>MODELS[c.key]).forEach(c=>{
+    const models=MODELS[c.key].filter(m=>{
+      const st=exState[m.id]; return st&&st.wrong&&st.wrong.size>0;});
+    if(models.length===0)return;
+    hasErrors=true;
+    let wrongCount=0;
+    models.forEach(m=>{const st=exState[m.id]; wrongCount+=st.wrong.size;});
+    h+=`<div class="err-cat-card" data-cat="${c.key}">
+      <div class="err-cat-head">
+        <span class="eci">${c.icon}</span>
+        <h3>${c.name}</h3>
+        <span class="err-badge">${wrongCount} 道错题</span>
+      </div>
+      <div class="err-model-list" data-cat="${c.key}">`;
+    models.forEach(m=>{
+      const st=exState[m.id];
+      h+=`<div class="err-model-row" data-mid="${m.id}" data-cat="${c.key}">
+        <span class="emi">${m.icon}</span>
+        <span class="emn">${m.name}</span>
+        <span class="emc">错 ${st.wrong.size} 题</span>
+      </div>`;
+    });
+    h+=`</div></div>`;
+  });
+  if(!hasErrors){
+    h+=`<div class="err-empty"><div class="big">🎉</div><p>暂无错题！继续做练习，做错的题目会自动收集到这里。</p></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function bindErrors(){
+  content.querySelectorAll(".err-cat-card").forEach(card=>{
+    const head=card.querySelector(".err-cat-head");
+    head.onclick=()=>{const list=card.querySelector(".err-model-list"); list.classList.toggle("show");};
+  });
+  content.querySelectorAll(".err-model-row").forEach(r=>r.onclick=()=>{
+    // 跳转到对应模型，自动切到练习tab
+    state.cat=r.dataset.cat; state.model=r.dataset.mid;
+    renderSidebar(); renderContent();
+    // 自动切到练习页
+    const quizTab=content.querySelector('.tab[data-p="quiz"]');
+    if(quizTab)quizTab.click();
+    taskbar.querySelectorAll(".task").forEach(t=>t.classList.toggle("active",t.dataset.cat===state.cat));
+  });
+}
+
+/* ---- 学习面板（不变） ---- */
 function learnPane(m){
   let h="";
   if(DETAILS[m.id]) h+=`<div class="card"><h3>📚 模型详解</h3><div class="detail">${esc(DETAILS[m.id])}</div></div>`;
   h+=`<div class="points">`+m.points.map(p=>`<div class="point"><h4>${p.h}</h4><p>${p.p}</p></div>`).join("")+`</div>`;
-  h+=`<div class="card"><h3>📊 模型图解</h3><div class="sub">${m.chart.type==='matrix'?'结构示意':m.chart.type==='pyramid'?'层次示意':m.chart.type==='channel'?'状态通道':'核心框架'}</div>
+  h+=`<div class="card"><h3>📊 模型图解</h3><div class="sub">${m.chart.type==='matrix'?'结构示意':m.chart.type==='pyramid'?'层次示意':m.chart.type==='channel'?'状态通道':m.chart.type==='ninebox'?'九宫格矩阵':'核心框架'}</div>
       <div class="chart-wrap">${renderChart(m.chart,m)}</div></div>`;
   h+=`<div class="card"><h3>📌 学习案例</h3><div class="sub">结合真实场景理解模型</div>`+
       m.cases.map(c=>`<div class="case"><div class="ct">${c.t}</div><div class="cs">场景：${c.s}</div><div class="ca">分析：${c.a}</div></div>`).join("")+`</div>`;
   return h;
 }
 function quizPane(m){
-  if(!exState[m.id]) exState[m.id]={answered:new Set(),correct:0};
+  if(!exState[m.id]) exState[m.id]={answered:new Set(),correct:0,wrong:new Set()};
   const qs=m._q||(m._q=genQuestions(m));
   const st=exState[m.id];
   const total=qs.length;
+  // 标记错题（如果有错题，排在前面）
+  let order=Array.from({length:total},(_,i)=>i);
+  if(st.wrong.size>0){
+    order.sort((a,b)=>{
+      const wa=st.wrong.has(a)?0:1, wb=st.wrong.has(b)?0:1;
+      return wa-wb;
+    });
+  }
   let h=`<div class="ex-head">
-      <div class="ex-score">已完成 <b id="exDone">${st.answered.size}</b>/${total} 题 · 正确率 <b id="exAcc">${st.answered.size?Math.round(st.correct/st.answered.size*100):0}%</b></div>
+      <div class="ex-score">已完成 <b id="exDone">${st.answered.size}</b>/${total} 题 · 正确率 <b id="exAcc">${st.answered.size?Math.round(st.correct/st.answered.size*100):0}%</b>${st.wrong.size?` · <span style="color:#dc2626">错题 ${st.wrong.size}</span>`:''}</div>
       <div class="ex-progress"><i id="exBar" style="width:${st.answered.size/total*100}%"></i></div>
       <button class="btn-reset" id="exReset">重置本题练习</button></div>`;
-  h+=qs.map((ex,i)=>`<div class="quiz" data-i="${i}">
-      <div class="q">${i+1}. ${ex.q}</div>
-      <div class="opts">${ex.o.map((o,oi)=>`<div class="opt" data-oi="${oi}"><span class="k">${String.fromCharCode(65+oi)}</span><span>${o}</span></div>`).join("")}</div>
-      <div class="explain" id="ex-${i}"></div></div>`).join("");
+  h+=order.map((qi,idx)=>{
+    const ex=qs[qi]; const isWrong=st.wrong.has(qi); const wasAnswered=st.answered.has(qi);
+    let optsHTML=ex.o.map((o,oi)=>{
+      let cls="opt"; let lk="";
+      if(wasAnswered){cls+=" locked"; if(oi===ex.a)cls+=" correct";}
+      return `<div class="${cls}" data-oi="${oi}" data-qi="${qi}"><span class="k">${String.fromCharCode(65+oi)}</span><span>${o}</span></div>`;
+    }).join("");
+    let exCls="explain";
+    if(wasAnswered)exCls+=" show "+(isWrong?"no":"ok");
+    let exHTML=wasAnswered?(isWrong?("❌ 正确答案："+String.fromCharCode(65+ex.a)+"。 "):"✅ 回答正确！ ")+ex.e:"";
+    return `<div class="quiz" data-i="${qi}">
+      <div class="q">${isWrong?'<span style="color:#dc2626;font-weight:800">[错题] </span>':''}${idx+1}. ${ex.q}</div>
+      <div class="opts">${optsHTML}</div>
+      <div class="explain ${wasAnswered?'show':''} ${wasAnswered?(isWrong?'no':'ok'):''}" id="ex-${qi}">${exHTML}</div></div>`;
+  }).join("");
   return h;
 }
 function bindQuiz(m){
   const pane=document.getElementById("pane-quiz"); if(!pane)return;
   const qs=m._q||(m._q=genQuestions(m));
-  const st=exState[m.id]||(exState[m.id]={answered:new Set(),correct:0});
+  const st=exState[m.id]||(exState[m.id]={answered:new Set(),correct:0,wrong:new Set()});
   pane.querySelectorAll(".quiz").forEach(q=>{
-    const i=+q.dataset.i; const ex=qs[i];
-    q.querySelectorAll(".opt").forEach(opt=>opt.onclick=()=>{
-      if(st.answered.has(i))return;
+    const qi=+q.dataset.i; const ex=qs[qi];
+    if(st.answered.has(qi))return; // 已答过的不可再点
+    q.querySelectorAll(".opt:not(.locked)").forEach(opt=>opt.onclick=()=>{
+      if(st.answered.has(qi))return;
       const oi=+opt.dataset.oi; const correct=oi===ex.a;
       q.querySelectorAll(".opt").forEach(o=>{o.classList.add("locked");if(+o.dataset.oi===ex.a)o.classList.add("correct");});
       if(!correct)opt.classList.add("wrong");
-      const box=document.getElementById("ex-"+i);
+      const box=document.getElementById("ex-"+qi);
       box.className="explain show "+(correct?"ok":"no");
       box.innerHTML=(correct?"✅ 回答正确！ ":"❌ 正确答案："+String.fromCharCode(65+ex.a)+"。 ")+ex.e;
-      st.answered.add(i); if(correct)st.correct++;
-      learned.add(m.id); updateExScore(m); renderSidebar(); updateStats();
+      st.answered.add(qi); if(correct)st.correct++; else st.wrong.add(qi);
+      learned.add(m.id); updateExScore(m); renderSidebar(); updateStats(); saveProgress();
     });
   });
   const reset=document.getElementById("exReset");
-  if(reset)reset.onclick=()=>{exState[m.id]={answered:new Set(),correct:0};renderContent();};
+  if(reset)reset.onclick=()=>{
+    exState[m.id]={answered:new Set(),correct:0,wrong:new Set()}; saveProgress(); renderContent();
+  };
 }
 function updateExScore(m){
   const st=exState[m.id]; const qs=m._q||[]; if(!st)return; const total=qs.length;
@@ -953,14 +1229,14 @@ function welcomeHTML(){
   let h=`<div class="welcome"><div class="big">👋 欢迎来到学习管理工作台</div>
     <p>请选择下方任务栏的模型分类，开始你的模型化学习之旅。共 ${Object.values(MODELS).reduce((a,b)=>a+b.length,0)} 个模型，每模型 30 道案例分析练习题。</p>
     <div class="cat-cards">`;
-  h+=CATS.map(c=>`<div class="cat-card" data-cat="${c.key}"><div class="ci">${c.icon}</div><h3>${c.name}</h3>
+  h+=CATS.filter(c=>MODELS[c.key]).map(c=>`<div class="cat-card" data-cat="${c.key}"><div class="ci">${c.icon}</div><h3>${c.name}</h3>
       <p>点击进入，浏览模型、图表案例并做练习。</p><div class="cnt">共 ${MODELS[c.key].length} 个模型</div></div>`).join("");
   h+=`</div></div>`; return h;
 }
 
 /* ============ 启动 + PWA ============ */
 buildTaskbar();
-selectCat("management");
+selectCat("home");
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});
 }
