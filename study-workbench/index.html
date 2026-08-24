@@ -122,6 +122,15 @@
   }
   .rail-back:hover{background:#f1f5f9}
   .rail-back .rb-ic{font-size:19px;line-height:1}
+  /* 折叠/展开按钮 */
+  .rail-toggle{
+    display:flex;align-items:center;gap:8px;width:100%;margin-top:auto;
+    padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    background:#fff;color:var(--muted);font-size:12.5px;font-weight:700;
+    cursor:pointer;transition:.15s;
+  }
+  .rail-toggle:hover{background:#f1f5f9}
+  .rail-toggle .rt-ic{font-size:16px;line-height:1}
   .task{
     display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border-radius:12px;cursor:pointer;
     font-size:13.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);background:#fff;transition:.15s;
@@ -145,27 +154,25 @@
   .cat-card p{font-size:12px;color:var(--muted)}
   .cat-card .cnt{margin-top:8px;font-size:12px;color:var(--muted)}
 
-  /* 移动端：全页布局，任务栏保持底部 */
+  /* 折叠状态：所有屏幕统一，由 .collapsed 类控制 */
+  .taskbar.collapsed{width:56px;padding:14px 6px}
+  .taskbar.collapsed .task{justify-content:center;gap:0;padding:12px 0}
+  .taskbar.collapsed .task > span:not(.ti){display:none}
+  .taskbar.collapsed .rail-back{justify-content:center;padding:10px 0}
+  .taskbar.collapsed .rail-back .rb-tx{display:none}
+  .taskbar.collapsed .rail-toggle{justify-content:center;padding:10px 0}
+  .taskbar.collapsed .rail-toggle .rt-tx{display:none}
+
+  /* 移动端：默认较窄 */
   @media(max-width:780px){
     .content{padding:14px 14px 20px}
     header p{display:none}
     .m-title{font-size:18px}
-    .taskbar{width:62px;padding:12px 6px;gap:8px;align-items:stretch}
-    .task{padding:12px 0;font-size:12px;justify-content:center;gap:0}
-    .task .ti{font-size:20px}
-    .task > span:not(.ti){display:none}
-    .rail-back{justify-content:center;padding:10px 0}
-    .rail-back .rb-tx{display:none}
     .points{grid-template-columns:1fr 1fr}
     .cat-cards{flex-direction:column;align-items:center}
   }
   @media(max-width:430px){
     .points{grid-template-columns:1fr}
-  }
-  @media(max-width:430px){
-    .task{padding:8px 6px;font-size:11px}
-    .task .ti{font-size:14px}
-    .task span:not(.ti){font-size:10px}
   }
 
   /* 首页进度卡片 */
@@ -1123,12 +1130,29 @@ function allModels(){
 }
 
 /* ---- 任务栏 ---- */
+function railCollapsed(){
+  const v=localStorage.getItem("swb_rail_collapsed");
+  if(v!==null) return v==="1";
+  return window.innerWidth<=780;
+}
+function applyRail(){
+  if(railCollapsed()) taskbar.classList.add("collapsed");
+  else taskbar.classList.remove("collapsed");
+}
+function toggleRail(){
+  const c=!railCollapsed();
+  localStorage.setItem("swb_rail_collapsed",c?"1":"0");
+  applyRail();
+}
 function buildTaskbar(){
   let h=`<button class="rail-back" id="railBack"><span class="rb-ic">‹</span><span class="rb-tx">返回</span></button>`;
   h+=CATS.map(c=>`<div class="task" data-cat="${c.key}"><span class="ti">${c.icon}</span><span>${c.name}</span></div>`).join("");
+  h+=`<button class="rail-toggle" id="railToggle"><span class="rt-ic">☰</span><span class="rt-tx">折叠</span></button>`;
   taskbar.innerHTML=h;
   taskbar.querySelectorAll(".task").forEach(t=>t.onclick=()=>selectCat(t.dataset.cat));
   document.getElementById("railBack").onclick=goBack;
+  document.getElementById("railToggle").onclick=toggleRail;
+  applyRail();
 }
 function firstModelId(cat){
   if(cat==="management") return MGMT.subcats[0].models[0].id;
