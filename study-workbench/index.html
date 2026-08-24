@@ -830,39 +830,64 @@ const SCENARIOS=[
   "竞品突然降价，自家产品优势被快速侵蚀",
   "公司想降本，却不知从哪个环节下手最有效"
 ];
-const STEMS=[
-  "此时运用该模型，最应优先把握的关键点是？",
-  "结合该模型，直接决定成败的核心抓手是？",
-  "用该模型的视角看，最容易被忽视却重要的是？",
-  "按该模型分析，最匹配当前情境的做法是？"
-];
 function seeded(seed){let s=seed%2147483647;if(s<=0)s+=2147483646;return ()=>(s=s*16807%2147483647)/2147483647;}
+function shuffleArr(arr, rnd){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+/* 每道题都明确绑定该模型的某一个要点(j)，正确答案即该要点的内容，
+   干扰项来自同模型其他要点——保证题干与答案强相关、可逻辑判读。 */
 function genQuestions(m){
-  const pts=m.points; const labels=pts.map(p=>p.h); const descs=pts.map(p=>p.p);
-  const q=[]; let si=0;
+  const pts=m.points;
+  const labels=pts.map(p=>p.h);
+  const descs=pts.map(p=>p.p);
+  const N=pts.length;
   const hash=m.id.split("").reduce((a,c)=>a+c.charCodeAt(0),0);
-  const rnd=seeded(hash+7);
-  const used=new Set();
-  let guard=0;
-  while(q.length<30 && guard<400){
-    guard++;
-    const sc=SCENARIOS[si%SCENARIOS.length];
-    const stem=STEMS[(si>>1)%STEMS.length];
-    const correctIdx=si%pts.length;
-    const correct=pts[correctIdx];
-    let others=pts.map((p,i)=>i).filter(i=>i!==correctIdx);
-    // 洗牌 others
-    for(let i=others.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[others[i],others[j]]=[others[j],others[i]];}
-    let opts=[correctIdx, others[0], others[1], others[2]].filter(i=>i!==undefined).map(i=>labels[i]);
-    if(opts.length<4){ // 不足4项时补通用项
-      const extra=["暂缓处理，观察后再定","交给他人代为决策","暂不行动，等上级指示"].filter(e=>!opts.includes(e));
-      while(opts.length<4 && extra.length) opts.push(extra.shift());
+  const rnd=seeded(hash+13);
+  const othersIdx=j=>{const o=[];for(let i=0;i<N;i++)if(i!==j)o.push(i);return o;};
+  const GENERIC_DESC=["该要点在实际操作中可暂缓，不必优先处理","以上均不属于本模型的核心内容","可直接照搬其他模型的同类做法"];
+  const GENERIC_LABEL=["其他不相干的管理工具","本模型未涉及的外部因素","与情境无关的随机变量"];
+  // 四类题型；v 用于同一题型的不同表述，减少重复感
+  const TYPES=[
+    (j,scn,v)=>({mode:"desc",
+      stem:["在「"+m.name+"」中，\""+labels[j]+"\"这一要点的含义是？",
+            "关于「"+m.name+"」的\""+labels[j]+"\"，下列说法最准确的是？"][v%2],
+      pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
+      expl:"\""+labels[j]+"\"指："+descs[j]+"。其余选项为该模型的其他要点，不等同于本项。"}),
+    (j,scn,v)=>({mode:"desc",
+      stem:[""+scn+"。用「"+m.name+"」分析，下列做法中最符合\""+labels[j]+"\"这一要点的是？",
+            ""+scn+"。若以「"+m.name+"」的\""+labels[j]+"\"来改进，最贴切的做法是？"][v%2],
+      pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
+      expl:"在「"+scn+"」的情境下，\""+labels[j]+"\"（"+descs[j]+"）是最对路的切入点；其余为该模型的其他要点，不是本情境重点。"}),
+    (j,scn,v)=>({mode:"label",
+      stem:["下面这描述的是「"+m.name+"」中的哪一个要点？\n\""+descs[j]+"\"",
+            "「"+m.name+"」里，下列描述对应的是哪一个要点？\n\""+descs[j]+"\""][v%2],
+      pool:[labels[j], ...othersIdx(j).map(i=>labels[i])],
+      expl:"\""+descs[j]+"\"正是「"+m.name+"」中\""+labels[j]+"\"要点的内容；其余为该模型的其他要点名称。"}),
+    (j,scn,v)=>({mode:"desc",
+      stem:["运用「"+m.name+"」时，关于\""+labels[j]+"\"下列说法符合该模型的是？",
+            "按「"+m.name+"」的逻辑，对\""+labels[j]+"\"理解正确的是？"][v%2],
+      pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
+      expl:"\""+labels[j]+"\"："+descs[j]+"。其余选项描述的是该模型其他要点，属于不同环节。"})
+  ];
+  const q=[];
+  for(let k=0;k<30;k++){
+    const j=k%N;
+    const b=Math.floor(k/N);
+    const typeIdx=b%TYPES.length;
+    const v=Math.floor(b/TYPES.length)%2;
+    const scn=SCENARIOS[k%SCENARIOS.length];
+    const g=TYPES[typeIdx](j,scn,v);
+    let pool=g.pool.slice(0,4);
+    if(pool.length<4){
+      const gen=g.mode==="label"?GENERIC_LABEL:GENERIC_DESC;
+      let gi=0; while(pool.length<4 && gi<gen.length) pool.push(gen[gi++]);
     }
-    for(let i=opts.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]];}
-    const ans=opts.indexOf(labels[correctIdx]);
-    const key=si;
-    q.push({q:`${sc}。${stem}`, o:opts, a:ans, e:`依据《${m.name}》：${correct.h}——${correct.p}`});
-    si++;
+    const correctText=pool[0];
+    const opts=shuffleArr(pool,rnd);
+    const a=opts.indexOf(correctText);
+    q.push({q:g.stem, o:opts, a:a, e:g.expl});
   }
   return q;
 }
