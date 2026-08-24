@@ -196,6 +196,31 @@
   .err-empty{text-align:center;padding:40px 16px;color:var(--muted)}
   .err-empty .big{font-size:30px;margin-bottom:8px}
 
+  /* 学习卡片模块 */
+  .card-big{background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:16px;padding:20px 18px;box-shadow:0 8px 24px rgba(124,58,237,.25)}
+  .card-big-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .card-name{font-size:22px;font-weight:800;letter-spacing:.5px}
+  .card-badge{font-size:12px;background:rgba(255,255,255,.22);padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .card-badge.today{background:rgba(255,255,255,.35)}
+  .card-author{font-size:13px;opacity:.85;margin:6px 0 14px}
+  .card-sec{margin-bottom:12px}
+  .card-sec b{display:inline-block;font-size:13px;background:rgba(255,255,255,.18);padding:2px 8px;border-radius:6px;margin-bottom:6px}
+  .card-sec p{margin:0;line-height:1.7;font-size:15px}
+  .card-sec.tip b{background:rgba(250,204,21,.92);color:#3a2a00}
+  .card-backtoday{margin-top:6px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:8px 14px;border-radius:10px;cursor:pointer;font-size:14px}
+  .card-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 6px}
+  .card-btn{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:9px 14px;border-radius:10px;cursor:pointer;font-size:14px}
+  .card-btn.done{background:#7c3aed;color:#fff;border-color:#7c3aed}
+  .card-stat{font-size:13px;color:var(--muted)}
+  .card-lib{margin-top:16px}
+  .card-lib h3{font-size:15px;margin:0 0 10px;color:var(--muted)}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .card-chip{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;transition:.15s}
+  .card-chip:hover{border-color:#7c3aed;transform:translateY(-2px)}
+  .card-chip.on{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.15)}
+  .cc-n{font-weight:700;font-size:14px;margin-bottom:3px}
+  .cc-a{font-size:11px;color:var(--muted)}
+
   /* 管理模型：板块总览与模型列表 */
   .mgmt-wrap{padding:6px 0}
   .mgmt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:14px}
@@ -291,7 +316,8 @@ const CATS = [
   {key:"management",  name:"管理模型", icon:"🏢", color:"var(--mgmt)"},
   {key:"psychology",  name:"心理模型", icon:"🧠", color:"var(--psy)"},
   {key:"growth",      name:"成长模型",   icon:"🌱", color:"var(--grow)"},
-  {key:"errors",      name:"错题集",     icon:"❌", color:"#dc2626"}
+  {key:"errors",      name:"错题集",     icon:"❌", color:"#dc2626"},
+  {key:"cards",       name:"学习卡片",   icon:"🗂️", color:"#7c3aed"}
 ];
 const SUBCAT_ICONS=['🧭','🏛️','🎯','👥','⚙️','💡'];
 const SUBCAT_COLORS=['#4f46e5','#0ea5e9','#16a34a','#f59e0b','#db2777','#7c3aed'];
@@ -720,6 +746,48 @@ const DETAILS = {
   "iceberg":"胜任力冰山模型（McClelland）把素质分水上/水下：水上知识、技能易识别易培养；水下角色定位、自我形象、特质、动机难改变却更决定长期绩效。选拔与发展应既看水上更看水下，尤其动机与特质。误区是只认学历证书（水上）忽视深层动机，招来好看不好用的人，或以为水下不能评估——可用行为面试与测评逼近。",
   "star":"STAR 面试法用情境 Situation 背景、任务 Task 目标、行动 Action 你具体做了什么、结果 Result 量化成果，结构化讲述一段经历，让回答有事实、可验证、难造假。候选人用它组织回答；面试官用它深挖。误区是只讲团队成果不提我做了啥（Result 无个人贡献），或 Result 无量化（取得了成功），或 S/T 冗长淹没 A。"
 };
+
+/* ============ 学习卡片：365 天每日一张、不重样 ============
+   每张：n=名称 a=提出者 c=核心概念(80-200字) l=生活例子 t=今日启示
+   要扩到真正 365 天不重样，只需往此数组继续补充卡片即可。 */
+const CARDS = [
+  {n:`自我效能感`, a:`Albert Bandura · 1977`, c:`自我效能感是班杜拉社会认知理论的核心概念，指个体对自己能否成功执行特定行为以达成预期结果的信念判断。它不同于一般自信，而是针对具体任务的能力预期，直接影响行为选择、努力程度和坚持时长。四大来源：成功体验（最强来源）、替代经验（看到他人成功）、社会劝说（他人的鼓励）、生理情绪状态（焦虑降低效能感）。效能感高的人把困难视为挑战而非威胁。`, l:`相信自己能学会弹吉他的人会比怀疑自己的人多练半小时，而这半小时又反过来增强信心。`, t:`通过小步骤的成功体验建立自信，把大目标拆成能做到的小事。`},
+  {n:`成长型思维`, a:`Carol Dweck · 2006`, c:`成长型思维认为人的能力并非固定，而是可以通过努力、策略和反馈不断发展。与之相对的是固定型思维，把能力看作天生不变。拥有成长型思维的人更愿接受挑战、在失败后坚持，并把批评视为学习机会。脑科学也支持神经可塑性：持续练习能重塑大脑连接。关键在于"尚未"思维——暂时不会，不等于永远不能。`, l:`孩子数学考砸，固定型思维说"我笨"；成长型思维说"我还没掌握方法，换个思路再练"。`, t:`遇到挫折时把"我不行"改成"我还没学会"，把评价从能力转向过程。`},
+  {n:`习得性无助`, a:`Martin Seligman · 1967`, c:`习得性无助指个体在反复经历无法掌控的负面事件后，即使后来环境改变、控制成为可能，仍放弃尝试的现象。塞利格曼用电击狗实验发现：当狗学会"无论怎么努力都无法逃避电击"，之后即便能轻松逃脱也不会尝试。人类类似——长期受困于无效努力的人会陷入"做什么都没用"的信念，表现为被动、抑郁与动机丧失。`, l:`反复投简历石沉大海的人，后来有面试机会也懒得准备，觉得自己"注定没戏"。`, t:`区分"真的无能为力"和"过去失败形成的惯性"，主动寻找哪怕一个小可控点。`},
+  {n:`延迟满足`, a:`Walter Mischel · 1972`, c:`延迟满足是抑制即时诱惑、为更大长远回报等待的能力。米歇尔的棉花糖实验中，能等住不吃眼前棉花糖、换取双倍奖励的幼儿，多年后在学业、健康、抗压上表现更佳。它关联自控力与执行功能。但后续研究发现，等待能力也受"成人是否可信""环境是否稳定"影响——若承诺常落空，及时行乐才是理性选择。`, l:`健身的人今晚忍住不点外卖，换来的不是一块肌肉，而是半年后更健康的身体。`, t:`想要的东西值得等，就给未来的自己一个具体承诺；别让"马上就要"替你做决定。`},
+  {n:`确认偏误`, a:`Raymond Nickerson · 1998`, c:`确认偏误指人倾向于寻找、解读、记忆那些支持自己已有信念的信息，而忽视或贬低相反证据。它让我们在社交媒体里只看到同温层观点，在投资时只关注利好消息。即使面对同样事实，不同立场的人也会得出相反结论。打破它需要主动寻找"最有可能证明我错"的信息，并认真对待反例。`, l:`买了某只股票后，你会不自觉地只刷看涨分析，对利空新闻视而不见。`, t:`做重要决定前，强迫自己列出三条"我可能错了"的理由。`},
+  {n:`锚定效应`, a:`Tversky & Kahneman · 1974`, c:`锚定效应指人在判断不确定数值时，会过度受最初获得的信息（"锚"）影响，后续调整往往不足。即使锚是随机、无关的，也会扭曲估计。谈判中先开价者设定了锚；商场"原价划掉"的标签也是锚。理性决策需意识到锚的存在，主动从多个独立来源校准，而非围绕第一个数字修正。`, l:`看到"原价999、现价399"你会觉得划算，其实你根本不知道它值不值999。`, t:`面对数字先问"这个参照从哪来"，必要时归零重估，别被第一个数字带跑。`},
+  {n:`损失厌恶`, a:`Kahneman & Tversky · 1979`, c:`损失厌恶指人对损失的痛苦感约为同等收益喜悦感的两倍，失去100元的难受要用赚约200元来抵消。它属于前景理论核心。这解释了为何人宁愿不卖亏损股票、不愿换更优方案、对"可能失去"极度敏感。营销的"限时优惠即将失效"正是利用损失厌恶推动行动。`, l:`免费试用到期要扣费，你明明用不上却懒得取消，只因为"放弃已拥有的"很疼。`, t:`把决策框架从"会失去什么"切换到"会得到什么"，避免被怕亏裹挟。`},
+  {n:`峰终定律`, a:`Daniel Kahneman · 1999`, c:`峰终定律指人对一段体验的记忆，主要由"高峰时刻"（最强烈的正负情绪点）和"结束时刻"决定，而非总时长或全程平均。一次两小时的聚餐，若结尾难堪，整体印象便糟糕；痛苦的检查若结尾舒缓，回忆也没那么糟。它启示我们：设计体验时不必拉平全程，而要雕琢高潮与收尾。`, l:`一场电影前面精彩、结尾烂尾，你记得的会是"这部片毁了"。`, t:`重要的事（聚餐、汇报、一天）刻意安排一个漂亮的结尾，记忆会原谅过程的小瑕疵。`},
+  {n:`心流`, a:`Mihaly Csikszentmihalyi · 1975`, c:`心流是当人们从事挑战与技能相匹配、目标清晰、反馈即时活动时，全神贯注、忘却时间的主观状态。此时自我意识消退、行动与意识合一。太易则无聊，太难则焦虑——最优区在两者交界。心流是幸福与高绩效的来源，常见于创作、运动、游戏。营造心流需减少干扰、设定明确小目标。`, l:`程序员debug三小时抬头发现天亮了，那种"忘了自己"的投入就是心流。`, t:`把大任务切成"跳一跳够得着"的关卡，关掉通知，让自己沉浸进去。`},
+  {n:`邓巴数`, a:`Robin Dunbar · 1992`, c:`邓巴数指受大脑皮层容量限制，一个人能维持稳定社交关系（彼此认识且知对方关系）的人数上限约150人。再往外是熟人（约500）、脸熟（约1500）。它解释了原始部落规模、公司班组人数、社交软件好友上限等现象。提醒我们：关系质量取决于深度而非数量，泛泛之交难以替代挚友。`, l:`微信好友两千，真遇到事能借钱或倾诉的，往往还是那十几个老朋友。`, t:`与其广加好友，不如定期维护几段真正重要的关系。`},
+  {n:`晕轮效应`, a:`Edward Thorndike · 1920`, c:`晕轮效应指人对某人某一方面（如外貌、声望）的好印象，会"光环"般扩散到其它无关特质，形成"好看=聪明=善良"的错误推断。反之负面特质也会连累整体。它在招聘、教学、品牌中广泛存在，导致判断失真。破除方法是把评价维度拆开、逐一基于证据，而非被单一亮点带偏。`, l:`面试时候选人名校光环太亮，面试官便默认他沟通能力也强，疏于验证。`, t:`评价人时逐项打分、写明依据，别让一个优点替其它能力背书。`},
+  {n:`破窗效应`, a:`Wilson & Kelling · 1982`, c:`破窗效应指如果环境中的小失序（一扇破窗、一处涂鸦）长期不被修复，会暗示"这里没人管"，诱发更多违规行为，最终恶性循环。它强调"防微杜渐"：及时纠正微小偏差，能防止系统性溃败。应用于城市管理、团队纪律、个人习惯——第一处乱糟糟不收拾，很快处处乱糟糟。`, l:`楼道里第一袋垃圾没人清，过一周就堆成垃圾角。`, t:`坏习惯刚冒头就处理，别等"小问题"滚成"大问题"才动手。`},
+  {n:`皮格马利翁效应`, a:`Rosenthal & Jacobson · 1968`, c:`皮格马利翁效应（又称罗森塔尔效应）指他人对一个人的期望，会通过态度、语言、互动方式被对方内化，最终使之表现真的朝期望方向发展。实验中，被告知"有潜力"的学生一年后成绩确实提升——并非能力突变，而是教师无意中给予更多关注与鼓励。它说明期望是种隐形塑造力。`, l:`教练坚信这孩子能成材，训练里多给机会，孩子真就越来越自信出色。`, t:`对人（尤其孩子、下属）给出具体的高期望，你的信任会变成他们的天花板高度。`},
+  {n:`蔡格尼克效应`, a:`Bluma Zeigarnik · 1927`, c:`蔡格尼克效应指人对未完成、被打断的任务记忆更清晰、心理张力更强，而已完成的事容易被遗忘。服务员能记住未结账的订单细节，结账后就忘——因为"待办"状态持续占用心智。它既让人挂念未竟之事，也可被善用：主动暂停在关键处，能提升后续回忆与动力。`, l:`追的剧卡在悬念你念念不忘，看完大结局反而很快忘了剧情。`, t:`工作卡壳时故意在"快解出"处停手，大脑会在后台替你惦记，下次上手更快。`},
+  {n:`虚假同感偏差`, a:`Lee Ross · 1977`, c:`虚假同感偏差指人倾向于高估别人与自己想法、偏好一致的程度，把自己的观点当作"常识"。支持某观点的人觉得"谁都该这么想"，喜欢某口味的人以为大众也爱。它源于以己度人，会加剧群体对立、误判民意。缓解方法是主动接触异见，把"我觉得"和"事实如此"分开。`, l:`你爱熬夜看书，便以为室友也"晚上效率高"，其实人家早睡早起。`, t:`下次想说"大家都这么认为"前，先想想：你问过几个人？`},
+  {n:`控制点`, a:`Julian Rotter · 1954`, c:`控制点指人解释事件成因时，倾向归于内部（自己能掌控）还是外部（运气、环境、他人）的稳定信念。内控者认为努力改变结果，外控者觉得凡事靠运气或强权。内控倾向与更高的学业、职业成就和心理健康相关，但并非绝对——有时承认不可控因素也是理性。关键是分清"我能改的"和"我改不了的"。`, l:`项目失败，内控者复盘自己哪里可改进，外控者怪客户不靠谱、运气差。`, t:`把能量投在"内控圈"——你能影响的事上，对外因学会放下。`},
+  {n:`认知重构`, a:`Aaron Beck · 1960s`, c:`认知重构是认知行为疗法的核心技术，指识别并挑战自动化负性思维（如"全或无""灾难化"），用更客观、平衡的想法替代，从而改善情绪与行为。它不否定事实，而是修正对事实的扭曲解读。例如把"我搞砸了一次=我一无是处"重构为"这次没做好，但能找到原因改进"。`, l:`被拒一次就觉得"没人会要我"，重构后会想"这家不合适，下家可能匹配"。`, t:`情绪崩时先抓出脑中那句话，问它：有证据吗？有没有更温和的版本？`},
+  {n:`达克效应`, a:`Dunning & Kruger · 1999`, c:`达克效应指能力不足的人往往缺乏元认知，既做不对也意识不到自己不对，因而高估自己；而真正高能力者常因见多识广，反而低估自己。于是"无知者无畏，专家谦虚"。它提醒我们：遇到极度自信却漏洞百出的人，未必是狂妄，可能真不知道自己不知道。弥补靠持续学习与外部反馈。`, l:`刚学三天炒股的人敢教别人，真正研究十年的反而谨慎说"不一定"。`, t:`对自己"很懂"的领域保持警惕，主动找行家挑刺；对谦虚的高手多听。`},
+  {n:`心理账户`, a:`Richard Thaler · 1985`, c:`心理账户指人会在心里把钱分门别类（吃喝、储蓄、赌资、礼金），每类有不同"该不该花"的规则，违背经济学"钱等价"原则。于是有人舍不得花工资买书，却大方用中奖钱请客；丢了100元心疼，赌场输100却不在意。理解它可帮我们统一财务决策，避免被分类偏见左右。`, l:`同样的500元，若是"年终奖"你就敢花，若是"房贷余额"就舍不得。`, t:`记账时把所有钱归到一个总账，按目标而非来源分配，花钱更清醒。`},
+  {n:`沉没成本`, a:`经济学概念`, c:`沉没成本是已经发生、无论如何无法收回的投入（时间、金钱、精力）。理性决策只应看未来成本与收益，不应被过去投入绑架。但人常因"都付出这么多了"而继续加码，越陷越深，典型如烂尾项目硬撑、难吃却吃完的套餐。及时止损不是认输，而是把资源留给更值得处。`, l:`电影难看你看半小时就想走，却因"票钱都花了"硬坐到结尾更难受。`, t:`问自己"如果现在从头、没投过一分，我还做这件事吗"，答案常是止损。`},
+  {n:`框架效应`, a:`Tversky & Kahneman · 1981`, c:`框架效应指同一信息的不同表述方式（框架）会改变人的选择，哪怕实质等价。"手术存活率90%"比"死亡率10%"更让人接受；"买一送一"比"打五折"诱人。它揭示决策依赖表述而非纯理性。应用：重要沟通选对框架；被推销时还原信息本质，看数字本身而非修辞。`, l:`同笔手续费，说"免首年"比"次年收"听起来更划算，其实一样。`, t:`被人用话术推动时，把话翻成中性数字再判断，别被包装带节奏。`},
+  {n:`幸存者偏差`, a:`Abraham Wald · 1943`, c:`幸存者偏差指只看到"活下来/成功"的样本，忽略沉默的失败者，从而得出错误结论。二战时统计返航战机弹孔，军方想加固弹多处；统计学家瓦尔德指出应加固弹少处——那些中弹多的飞机根本没回来。商业成功学常犯此错：只研究富豪习惯，却无视同样习惯的普通人。`, l:`鸡汤书总结富豪都辍学，却不说辍学破产的更多，只是没人写书。`, t:`学榜样时追问"和TA做同样选择却失败的人去哪了"，结论才完整。`},
+  {n:`马太效应`, a:`Robert Merton · 1968`, c:`马太效应源自"凡有的还要加给他"，指优势积累：已有资源、声望、成绩的人更容易获得更多，差距自我强化。学术界大牛更易发顶刊、拿经费；富者投资渠道更多。它解释不平等为何扩大。意识到它，可在早期主动积累关键"第一桶金"（技能、信用、人脉），让正向循环启动。`, l:`班级里受表扬多的孩子更自信更敢答，机会越多，差距悄悄拉大。`, t:`趁早在一个小领域做到前20%，让"微小优势"有机会滚成雪球。`},
+  {n:`墨菲定律`, a:`Edward Murphy · 1949`, c:`墨菲定律：凡事只要有可能出错，就终会出错。它并非宿命，而是工程警示：复杂系统里隐患若未被排除，迟早暴露。应对之道不是焦虑，而是冗余设计、预演失败、小步验证。把"万一"变"预案"，把"可能出错"变成"已为它留后路"。`, l:`你赶时间偏遇堵车、重要汇报前一晚电脑死机——墨菲总挑关键节点。`, t:`对关键事多做一步备份（保存副本、提前到场），把墨菲变成"已防住"。`},
+  {n:`帕金森定律`, a:`Cyril Parkinson · 1955`, c:`帕金森定律：工作会自动膨胀，占满所有可用时间。给一周的任务，往往拖到最后两天才突击完成；给两小时会议，两小时刚好用完却未必有结论。它揭示时间预算塑造行为。反制：人为压缩期限、设明确交付节点、用"时间盒"逼出效率。`, l:`论文 deadline 在月底，你前二十天刷剧，最后三天通宵赶完。`, t:`把大期限拆成多个"提前的小截止"，别让任务舒舒服服躺满全程。`},
+  {n:`旁观者效应`, a:`Latané & Darley · 1964`, c:`旁观者效应指紧急情况下在场人数越多，个体出手相助的概率反而越低。因为责任被分散（"别人会管"）、且众人沉默被误读为"没事"。经典案例：38人目击谋杀却无人报警。破解：作为求助者要指定具体人（"穿蓝衣的您，帮我报警"），作为旁观者要主动认领责任。`, l:`地铁有人晕倒，一圈人围观却都等别人先动，结果没人动。`, t:`遇险别喊"救命"泛呼，要锁定一个人下指令，责任清晰才有人帮。`},
+  {n:`纯粹接触效应`, a:`Robert Zajonc · 1968`, c:`纯粹接触效应（多看效应）指人仅因反复接触某事物，就会对其产生更高好感，无需任何额外信息。广告洗脑、循环中歌曲越听越顺耳，皆源于此。它说明熟悉即偏爱，是品牌曝光与人际亲近的低门槛策略。但也提醒：别把"眼熟"错当成"真好"。`, l:`某首歌初听一般，电台放了一周你竟开始跟着哼。`, t:`想让人接受新事物（方案、自己），先保证适度、重复、无害的曝光。`},
+  {n:`自我实现预言`, a:`Robert Merton · 1948`, c:`自我实现预言指一个最初未必真实的预期，因被相信并采取相应行动，最终变成现实。老师以为某生聪明→多关注→该生真变好；被诬"小偷"的人因被当贼防，久之行为失当坐实标签。它既是皮格马利翁的正面版，也含负面标签的恶性循环。掌控它：给自己和他人贴上"能变好"的预言。`, l:`被认为"捣蛋"的孩子，在持续防备中真学会了捣蛋。`, t:`警惕别人贴给你的负面标签，也别轻易给旁人下定论。`},
+  {n:`认知失调`, a:`Leon Festinger · 1957`, c:`认知失调指当人同时持有矛盾信念，或行为与自我认知冲突时，会产生心理不适，进而通过改变态度、否认事实或找理由来消解。吸烟者明知有害却说"我爷爷也抽，活到90"——正是用新理由平衡失调。理解它可解释诸多自欺，也提醒：减少失调靠面对而非自圆其说。`, l:`剁手买完又后悔，便说服自己"反正划算、迟早要买"来安抚内心。`, t:`发现自己强找理由原谅行为时，暂停一下：是真的合理，还是只为舒服？`},
+  {n:`霍桑效应`, a:`Elton Mayo · 1924`, c:`霍桑效应指当人意识到自己正被观察、关注时，行为会暂时改善。工厂实验发现，无论调亮调暗灯光，工人效率都上升——变因不是环境，而是"被重视"。它说明关注本身即动力，也警示：实验或管理中的"被观察"会污染真实表现，评估需看长期常态。`, l:`老板站身后那会儿你打字飞快，他一走又摸鱼——你只是被看见了。`, t:`想激励人，先让其感到被看见；但评估成效要排除"表演性努力"。`},
+  {n:`二八定律`, a:`Vilfredo Pareto · 1896`, c:`二八定律（帕累托法则）指许多系统中，约80%的结果来自20%的原因：20%客户贡献80%营收，20%bug导致80%崩溃，20%努力产出80%价值。它非精确铁律，而是提醒分布常高度不均。应用：把精力压在关键少数上，而非平均用力。识别你的"那20%"是杠杆点。`, l:`衣橱里常穿的永远就那几件，其余多数一年碰不到两次。`, t:`列清单找出产出最高的20%事项，优先做它们，其余能外包就外包。`},
+  {n:`复利效应`, a:`金融/数学原理`, c:`复利指收益再投资，使本金与利息共同生息，呈现指数增长。它被称"世界第八大奇迹"。它的威力在后期爆发，前期缓慢——这正是多数人半途而废的原因。它不只用于钱：每天读10页、练20分钟，长期积累远超想象。关键是"不中断"，中断会让曲线归零重来。`, l:`每月存500、年化8%，二十年后远不止12万本金，而是近30万。`, t:`选一件小事每天做，把"持续"当作核心指标，让时间为你复利。`},
+  {n:`黑天鹅事件`, a:`Nassim Taleb · 2007`, c:`黑天鹅指罕见、冲击巨大、事后看似可解释却事前难预测的极端事件（如2008金融危机、疫情）。它挑战"世界可被正态分布描述"的错觉：真正改变历史的常是离群值。应对：少做脆弱的线性押注，构建"反脆弱"——小亏能扛、大变能受益的组合，并为未知留冗余。`, l:`一家店平日平安，一场暴雨泡了仓库，没买保险的全年利润归零。`, t:`别只看平均风险，给极端情况留缓冲；用"如果最糟发生怎么办"做压力测试。`},
+  {n:`公地悲剧`, a:`Garrett Hardin · 1968`, c:`公地悲剧指当资源为众人共享、个体可免费使用却由全体承担后果时，每个人理性地多占一点，最终资源枯竭、所有人受损。牧场、渔场、空气皆然。它揭示"个体理性导致集体非理性"。破解靠明晰产权、规则约束、或把外部成本内部化（如碳税、配额）。`, l:`小区草坪人人踩近道，最后没路可走，谁都埋怨别人却都踩。`, t:`面对共享资源先问"规则谁定"，能者自管，别等集体耗尽才后悔。`},
+  {n:`囚徒困境`, a:`Albert Tucker · 1950`, c:`囚徒困境是博弈论经典：两嫌犯隔离审讯，若都沉默各判1年，若互相揭发各判3年，若一人揭发另一人沉默则揭发者自由、沉默者判5年。理性下双方都选揭发，结果(3,3)反差于最优(1,1)。它说明个体最优不等于集体最优，合作需要信任或重复博弈中的声誉约束。`, l:`两家公司都不降价能共赢，可每家都怕对手先降，于是轮流降价两败。`, t:`长期关系里主动释放合作信号、建立信任，能跳出"互相伤害"的均衡。`},
+  {n:`艾宾浩斯遗忘曲线`, a:`Hermann Ebbinghaus · 1885`, c:`遗忘曲线揭示记忆随时间呈先快后慢的衰退：学完一天后遗留约33%，六天后仅约25%。遗忘在初期最猛，随后趋缓。对抗方法是"间隔重复"——在即将遗忘的节点复习，能把记忆加固并拉长。它奠定了 flashcards、Anki 等高效学习的科学依据。`, l:`考前通宵背的单词，考完一周基本还回给书本，因为没在遗忘点复习。`, t:`学完别等全忘再翻，按1天、3天、7天节奏回看，记得牢得多。`}
+];
 
 /* 统一为 {management, psychology, growth} 供渲染 */
 const MODELS = {
@@ -1227,6 +1295,7 @@ function renderContent(){
   clearSwipe();
   if(state.cat==="home"){content.innerHTML=homeHTML(); bindHome(); updateHeaderBack(); return;}
   if(state.cat==="errors"){content.innerHTML=errorsHTML(); bindErrors(); updateHeaderBack(); return;}
+  if(state.cat==="cards"){content.innerHTML=cardsHTML(); bindCards(); updateHeaderBack(); return;}
   if(state.cat==="management" && !state.model){
     if(state.subcat){content.innerHTML=subcatModelsHTML(state.subcat); bindSubcatModels(state.subcat);}
     else {content.innerHTML=mgmtOverviewHTML(); bindMgmtOverview();}
@@ -1348,6 +1417,82 @@ function bindHome(){
     const mm=getModel(state.model); state.subcat = state.cat==="management"? mm.subcat : null;
     renderSidebar(); renderContent(); setActiveTask(state.cat);
   });
+}
+
+/* ============ 学习卡片模块 ============ */
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+function cardTodayIndex(){
+  // 以 2026-01-01 为纪元，按天取模 → 每天固定一张、循环不重样
+  const epoch=new Date(2026,0,1); const now=new Date();
+  epoch.setHours(0,0,0,0); now.setHours(0,0,0,0);
+  const day=Math.floor((now-epoch)/86400000);
+  return ((day%CARDS.length)+CARDS.length)%CARDS.length;
+}
+function cardsReadStore(){
+  try{ return JSON.parse(localStorage.getItem("swb_cards_read")||"{}"); }catch(e){ return {}; }
+}
+function markCardRead(){
+  const d=todayStr(); const s=cardsReadStore(); s[d]=(s[d]||0)+1;
+  localStorage.setItem("swb_cards_read",JSON.stringify(s));
+}
+function isCardReadToday(){ return !!cardsReadStore()[todayStr()]; }
+function cardStreak(){
+  const s=cardsReadStore(); if(!Object.keys(s).length) return 0;
+  let streak=0; const d=new Date(); d.setHours(0,0,0,0);
+  for(;;){
+    const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+    if(s[k]){ streak++; d.setDate(d.getDate()-1); } else break;
+  }
+  return streak;
+}
+function cardsTotalRead(){ const s=cardsReadStore(); return Object.values(s).reduce((a,b)=>a+b,0); }
+function cardBigHTML(c, opts){
+  opts=opts||{};
+  const badge = opts.random ? `<span class="card-badge">随机浏览</span>` : `<span class="card-badge today">今日卡片</span>`;
+  const back  = opts.random ? `<button class="card-backtoday" id="backToday">↩ 返回今日卡片</button>` : "";
+  return `<div class="card-big">
+    <div class="card-big-head"><div class="card-name">${c.n}</div>${badge}</div>
+    <div class="card-author">${c.a}</div>
+    <div class="card-sec"><b>核心概念</b><p>${c.c}</p></div>
+    <div class="card-sec"><b>生活例子</b><p>${c.l}</p></div>
+    <div class="card-sec tip"><b>今日启示</b><p>${c.t}</p></div>
+    ${back}
+  </div>`;
+}
+function cardsHTML(){
+  const idx=cardTodayIndex(); const c=CARDS[idx]; const read=isCardReadToday();
+  return `
+    <div class="topback"><button class="tb-btn" id="tbBack">‹ 返回</button><span class="tb-crumb">学习卡片</span></div>
+    <div class="card-stage" id="cardStage">${cardBigHTML(c,{random:false})}</div>
+    <div class="card-actions">
+      <button class="card-btn ${read?'done':''}" id="markRead">${read?'✓ 今日已读':'✓ 标记今日已读'}</button>
+      <button class="card-btn" id="randCard">🎲 换一张随机</button>
+      <span class="card-stat">已读 ${cardsTotalRead()} 天 · 连续 ${cardStreak()} 天</span>
+    </div>
+    <div class="card-lib">
+      <h3>全部 ${CARDS.length} 张卡片</h3>
+      <div class="card-grid">
+        ${CARDS.map((x,k)=>`<div class="card-chip ${k===idx?'on':''}" data-i="${k}"><div class="cc-n">${x.n}</div><div class="cc-a">${x.a}</div></div>`).join("")}
+      </div>
+    </div>`;
+}
+function bindCards(){
+  const tb=content.querySelector("#tbBack"); if(tb)tb.onclick=goBack;
+  const stage=content.querySelector("#cardStage");
+  function setStage(idx, random){
+    stage.innerHTML=cardBigHTML(CARDS[idx],{random:random});
+    const bt=stage.querySelector("#backToday"); if(bt)bt.onclick=()=>setStage(cardTodayIndex(),false);
+  }
+  const mark=content.querySelector("#markRead");
+  if(mark)mark.onclick=()=>{
+    markCardRead();
+    mark.textContent="✓ 今日已读"; mark.classList.add("done");
+    const st=content.querySelector(".card-stat");
+    if(st)st.textContent=`已读 ${cardsTotalRead()} 天 · 连续 ${cardStreak()} 天`;
+  };
+  const rnd=content.querySelector("#randCard");
+  if(rnd)rnd.onclick=()=>{ setStage(Math.floor(Math.random()*CARDS.length),true); };
+  content.querySelectorAll(".card-chip").forEach(el=>el.onclick=()=>setStage(parseInt(el.dataset.i,10),true));
 }
 
 /* ---- 错题集 ---- */
