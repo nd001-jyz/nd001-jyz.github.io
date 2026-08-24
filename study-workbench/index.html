@@ -313,6 +313,7 @@
 </header>
 
 <div class="body">
+  <aside class="sidebar" id="sidebar"></aside>
   <nav class="taskbar" id="taskbar"></nav>
   <main class="content" id="content"></main>
 </div>
@@ -1137,7 +1138,7 @@ function selectCat(cat){
   state.cat=cat;
   state.subcat=null; state.model=null;
   clearSwipe();
-  sidebar.innerHTML="";
+  if(sidebar) sidebar.innerHTML="";
   renderContent();
   setActiveTask(cat);
 }
@@ -1145,7 +1146,7 @@ function selectCat(cat){
 /* ---- 侧栏（仅模型板块用） ---- */
 function renderSidebar(){
   // 全页面模式：不再使用常驻侧栏，导航在内容区完成
-  sidebar.innerHTML="";
+  if(sidebar) sidebar.innerHTML="";
   updateHeaderBack();
 }
 function setActiveTask(cat){
