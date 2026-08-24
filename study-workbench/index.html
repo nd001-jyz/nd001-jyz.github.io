@@ -237,6 +237,9 @@
   }
   .card-lib-btn:hover{border-color:#7c3aed;box-shadow:0 4px 14px rgba(124,58,237,.12)}
   .card-lib-btn .cl-count{font-size:13px;font-weight:600;color:#9b6fd1;background:#f3eaff;padding:3px 10px;border-radius:999px}
+  /* 学习卡片 · 学习态（点开学习时）—— 淡淡绿色背景 */
+  .cards-wrap.study{background:linear-gradient(160deg,#f1faf3 0%,#f6fcf7 60%,#ecfaf0 100%);border:1px solid #d9efe2}
+  .card-lib.study{background:linear-gradient(160deg,#f1faf3 0%,#f6fcf7 60%,#ecfaf0 100%);border:1px solid #d9efe2;border-radius:18px;padding:18px 18px 22px}
   .card-lib{margin-top:16px}
   .card-lib h3{font-size:15px;margin:0 0 10px;color:#7c3a9e}
   .card-lib .card-back{margin-bottom:12px}
@@ -1686,7 +1689,7 @@ function cardsHTML(){
   const todayN=cardsReadTodayCount();
   return `
     <div class="topback"><button class="tb-btn" id="tbBack">‹ 返回</button><span class="tb-crumb">学习卡片</span></div>
-    <div class="cards-wrap">
+    <div class="cards-wrap study">
       <div class="card-stage" id="cardStage">${cardBigHTML(c,{random:false})}</div>
       <div class="card-actions">
         <button class="card-btn primary" id="randCard">🎲 换一张随机</button>
@@ -1736,6 +1739,9 @@ function bindCardLib(){
     backBtn.className="card-backtoday"; backBtn.textContent="↩ 返回总览";
     stage.querySelector(".card-big").appendChild(backBtn);
     const lib=content.querySelector(".card-lib");
+    const libWrap=content.querySelector(".cards-wrap");
+    if(libWrap)libWrap.classList.add("study");
+    lib.classList.add("study");
     lib.innerHTML=""; lib.appendChild(stage);
     backBtn.onclick=()=>{ content.innerHTML=cardLibHTML(); bindCardLib(); };
   });
