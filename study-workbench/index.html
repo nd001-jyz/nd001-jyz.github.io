@@ -122,15 +122,14 @@
   }
   .rail-back:hover{background:#f1f5f9}
   .rail-back .rb-ic{font-size:19px;line-height:1}
-  /* 折叠/展开按钮 */
-  .rail-toggle{
-    display:flex;align-items:center;gap:8px;width:100%;margin-top:auto;
-    padding:10px 12px;border:1px solid var(--line);border-radius:10px;
-    background:#fff;color:var(--muted);font-size:12.5px;font-weight:700;
-    cursor:pointer;transition:.15s;
+  /* 折叠/展开按钮（顶部 header） */
+  .header-toggle{
+    margin-left:8px; width:36px; height:36px; flex-shrink:0;
+    border:1px solid var(--line); background:#fff; color:#334155;
+    border-radius:10px; font-size:18px; line-height:1; cursor:pointer; transition:.15s;
+    display:flex; align-items:center; justify-content:center;
   }
-  .rail-toggle:hover{background:#f1f5f9}
-  .rail-toggle .rt-ic{font-size:16px;line-height:1}
+  .header-toggle:hover{background:#f1f5f9}
   .task{
     display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border-radius:12px;cursor:pointer;
     font-size:13.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);background:#fff;transition:.15s;
@@ -154,14 +153,9 @@
   .cat-card p{font-size:12px;color:var(--muted)}
   .cat-card .cnt{margin-top:8px;font-size:12px;color:var(--muted)}
 
-  /* 折叠状态：所有屏幕统一，由 .collapsed 类控制 */
-  .taskbar.collapsed{width:56px;padding:14px 6px}
-  .taskbar.collapsed .task{justify-content:center;gap:0;padding:12px 0}
-  .taskbar.collapsed .task > span:not(.ti){display:none}
-  .taskbar.collapsed .rail-back{justify-content:center;padding:10px 0}
-  .taskbar.collapsed .rail-back .rb-tx{display:none}
-  .taskbar.collapsed .rail-toggle{justify-content:center;padding:10px 0}
-  .taskbar.collapsed .rail-toggle .rt-tx{display:none}
+  /* 折叠状态：完全隐藏任务栏，内容区占满全屏 */
+  body.rail-hidden .taskbar{display:none}
+  body.rail-hidden .content{margin-left:0}
 
   /* 移动端：默认较窄 */
   @media(max-width:780px){
@@ -308,6 +302,7 @@
 <body>
 <header>
   <button class="h-back" id="hBack" aria-label="返回">‹</button>
+  <button class="header-toggle" id="headerToggle" aria-label="显示/隐藏导航">☰</button>
   <div class="logo">📚</div>
   <div>
     <h1>学习管理工作台</h1>
@@ -1130,28 +1125,28 @@ function allModels(){
 }
 
 /* ---- 任务栏 ---- */
-function railCollapsed(){
-  const v=localStorage.getItem("swb_rail_collapsed");
+function railHidden(){
+  const v=localStorage.getItem("swb_rail_hidden");
   if(v!==null) return v==="1";
-  return window.innerWidth<=780;
+  return false; // 默认显示
 }
 function applyRail(){
-  if(railCollapsed()) taskbar.classList.add("collapsed");
-  else taskbar.classList.remove("collapsed");
+  if(railHidden()) document.body.classList.add("rail-hidden");
+  else document.body.classList.remove("rail-hidden");
 }
 function toggleRail(){
-  const c=!railCollapsed();
-  localStorage.setItem("swb_rail_collapsed",c?"1":"0");
+  const h=!railHidden();
+  localStorage.setItem("swb_rail_hidden",h?"1":"0");
   applyRail();
 }
 function buildTaskbar(){
   let h=`<button class="rail-back" id="railBack"><span class="rb-ic">‹</span><span class="rb-tx">返回</span></button>`;
   h+=CATS.map(c=>`<div class="task" data-cat="${c.key}"><span class="ti">${c.icon}</span><span>${c.name}</span></div>`).join("");
-  h+=`<button class="rail-toggle" id="railToggle"><span class="rt-ic">☰</span><span class="rt-tx">折叠</span></button>`;
   taskbar.innerHTML=h;
   taskbar.querySelectorAll(".task").forEach(t=>t.onclick=()=>selectCat(t.dataset.cat));
   document.getElementById("railBack").onclick=goBack;
-  document.getElementById("railToggle").onclick=toggleRail;
+  const ht=document.getElementById("headerToggle");
+  if(ht) ht.onclick=toggleRail;
   applyRail();
 }
 function firstModelId(cat){
@@ -1186,7 +1181,7 @@ function updateHeaderBack(){
   const btn=document.getElementById("hBack");
   if(btn){ if(isDeep()) btn.classList.add("show"); else btn.classList.remove("show"); }
   const rb=document.getElementById("railBack");
-  if(rb){ rb.style.display = isDeep() ? "flex" : "none"; }
+  if(rb){ if(rb.style) rb.style.display = isDeep() ? "flex" : "none"; else rb.classList.toggle("show", isDeep()); }
 }
 function clearSwipe(){ content.style.transition=""; content.style.transform=""; }
 function goBack(){
