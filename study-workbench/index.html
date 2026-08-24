@@ -1117,40 +1117,6 @@ function bindCatModels(cat){
   });
 }
 
-/* 滑动返回（移动端）：从内容区向右滑动即返回上一级 */
-let _sx=0,_sy=0,_dragging=false,_swiping=false,_curX=0;
-function setupSwipe(){
-  content.addEventListener("touchstart",e=>{
-    if(e.touches.length!==1)return;
-    _sx=e.touches[0].clientX; _sy=e.touches[0].clientY; _dragging=true; _swiping=false; _curX=0;
-  },{passive:true});
-  content.addEventListener("touchmove",e=>{
-    if(!_dragging)return;
-    const dx=e.touches[0].clientX-_sx, dy=e.touches[0].clientY-_sy;
-    if(!_swiping){
-      if(dx>8 && dx>dy*1.5) _swiping=true;
-      else if(dy>8 || dx<-8){ _dragging=false; return; }
-    }
-    if(_swiping){
-      e.preventDefault();
-      _curX=Math.max(0,Math.min(dx,90));
-      content.style.transition="none";
-      content.style.transform="translateX("+_curX+"px)";
-      content.classList.add("swiping");
-    }
-  },{passive:false});
-  content.addEventListener("touchend",()=>{
-    if(!_dragging)return; _dragging=false;
-    if(_swiping){
-      content.style.transition="transform .2s ease";
-      if(_curX>55){ content.style.transform=""; goBack(); }
-      else { content.style.transform="translateX(0)"; }
-      setTimeout(()=>{content.style.transition="";content.style.transform="";content.classList.remove("swiping");},220);
-    }
-    _swiping=false;
-  });
-}
-
 function modelItemHTML(m){
   const st=modelStats(m.id);
   return `<div class="model-item ${m.id===state.model?'active':''} ${st.learned?'learned':''}" data-id="${m.id}">
@@ -1492,7 +1458,6 @@ function welcomeHTML(){
 /* ============ 启动 + PWA ============ */
 buildTaskbar();
 document.getElementById("hBack").onclick=goBack;
-setupSwipe();
 selectCat("home");
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});
