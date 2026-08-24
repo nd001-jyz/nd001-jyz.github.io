@@ -1,9 +1,12 @@
-const CACHE = "wb-workbench-v1";
+/* 学习工作台 Service Worker —— 网络优先，自动更新 */
+const CACHE = "wb-workbench-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).catch(() => {}));
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(ASSETS)).catch(() => {})
+  );
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil(
@@ -15,15 +18,14 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    caches.match(e.request).then((r) =>
-      r ||
-      fetch(e.request)
-        .then((resp) => {
-          const copy = resp.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
-          return resp;
-        })
-        .catch(() => caches.match("./index.html"))
-    )
+    fetch(e.request)
+      .then((resp) => {
+        const copy = resp.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+        return resp;
+      })
+      .catch(() =>
+        caches.match(e.request).then((r) => r || caches.match("./index.html"))
+      )
   );
 });
