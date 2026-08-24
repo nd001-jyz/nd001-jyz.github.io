@@ -1117,24 +1117,26 @@ function bindCatModels(cat){
   });
 }
 
-/* 左滑退出（移动端）：内容区明显向左滑动才返回上一级；纵向滚动(下滑看题)绝不误触发 */
-let _sx=0,_sy=0,_dragging=false,_swiping=false,_curX=0;
+/* 右滑返回（移动端）：从屏幕最左边缘向右滑动才返回上一级；纵向滚动(下滑看题)绝不误触发 */
+let _sx=0,_sy=0,_dragging=false,_swiping=false,_curX=0,_edge=false;
 function setupSwipe(){
   content.addEventListener("touchstart",e=>{
     if(e.touches.length!==1)return;
-    _sx=e.touches[0].clientX; _sy=e.touches[0].clientY; _dragging=true; _swiping=false; _curX=0;
+    _sx=e.touches[0].clientX; _sy=e.touches[0].clientY;
+    _edge=_sx<40;                  // 必须从屏幕最左边缘开始
+    _dragging=true; _swiping=false; _curX=0;
   },{passive:true});
   content.addEventListener("touchmove",e=>{
     if(!_dragging)return;
     const dx=e.touches[0].clientX-_sx, dy=e.touches[0].clientY-_sy;
     if(!_swiping){
-      // 只认「明显的左滑」：dx 向左(负)且横向位移是纵向的 2 倍以上；否则一律交回浏览器(滚动/右滑)
-      if(dx<-10 && Math.abs(dx)>Math.abs(dy)*2) _swiping=true;
-      else if(Math.abs(dy)>Math.abs(dx) || dx>10){ _dragging=false; return; }
+      // 只认「从最左边缘明显的右滑」：dx 向右(正)且横向位移是纵向的 2 倍以上；否则一律交回浏览器(滚动/左滑)
+      if(_edge && dx>10 && Math.abs(dx)>Math.abs(dy)*2) _swiping=true;
+      else if(Math.abs(dy)>Math.abs(dx)){ _dragging=false; return; }
     }
     if(_swiping){
       e.preventDefault();
-      _curX=Math.min(0,Math.max(dx,-90));   // 跟随手指向左，最多 -90px
+      _curX=Math.max(0,Math.min(dx,90));    // 跟随手指向右，最多 90px
       content.style.transition="none";
       content.style.transform="translateX("+_curX+"px)";
       content.classList.add("swiping");
@@ -1144,7 +1146,7 @@ function setupSwipe(){
     if(!_dragging)return; _dragging=false;
     if(_swiping){
       content.style.transition="transform .2s ease";
-      if(_curX<-55){ content.style.transform=""; goBack(); }   // 左滑够深 → 退出
+      if(_curX>55){ content.style.transform=""; goBack(); }    // 右滑够深 → 返回
       else { content.style.transform="translateX(0)"; }        // 否则回弹
       setTimeout(()=>{content.style.transition="";content.style.transform="";content.classList.remove("swiping");},220);
     }
