@@ -93,7 +93,7 @@
   .btn-reset{font-size:12px;padding:7px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;color:var(--muted)}
   .btn-reset:hover{background:#f1f5f9}
   .quiz{margin-bottom:14px;border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel)}
-  .quiz .q{font-size:13.5px;font-weight:600;margin-bottom:9px;line-height:1.6}
+  .quiz .q{font-size:13.5px;font-weight:600;margin-bottom:9px;line-height:1.6;white-space:pre-line}
   .quiz .opts{display:flex;flex-direction:column;gap:7px}
   .opt{
     display:flex;align-items:center;gap:9px;padding:10px 11px;border:1px solid var(--line);border-radius:9px;
@@ -836,8 +836,18 @@ function shuffleArr(arr, rnd){
   for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
   return a;
 }
-/* 每道题都明确绑定该模型的某一个要点(j)，正确答案即该要点的内容，
-   干扰项来自同模型其他要点——保证题干与答案强相关、可逻辑判读。 */
+/* 全模型扁平列表（用于"模型定位记忆"题的干扰项），带缓存 */
+let _allModelsCache=null;
+function allModelList(){
+  if(_allModelsCache)return _allModelsCache;
+  const arr=[];
+  MGMT.subcats.forEach(sc=>sc.models.forEach(x=>arr.push(x)));
+  for(const k in MODELS)MODELS[k].forEach(x=>arr.push(x));
+  _allModelsCache=arr; return arr;
+}
+/* 每道题都明确绑定该模型的某个要点(j)或整体概念，正确答案即该要点的真实内容，
+   干扰项来自同模型其他要点 / 其他模型简介——保证题干、选项、答案三者强相关。
+   题型：A 概念记忆 · B 要点识别 · C 场景应用 · D 概念理解 · E 模型定位记忆 · F 真实案例解析。 */
 function genQuestions(m){
   const pts=m.points;
   const labels=pts.map(p=>p.h);
@@ -846,49 +856,69 @@ function genQuestions(m){
   const hash=m.id.split("").reduce((a,c)=>a+c.charCodeAt(0),0);
   const rnd=seeded(hash+13);
   const othersIdx=j=>{const o=[];for(let i=0;i<N;i++)if(i!==j)o.push(i);return o;};
-  const GENERIC_DESC=["该要点在实际操作中可暂缓，不必优先处理","以上均不属于本模型的核心内容","可直接照搬其他模型的同类做法"];
-  const GENERIC_LABEL=["其他不相干的管理工具","本模型未涉及的外部因素","与情境无关的随机变量"];
-  // 四类题型；v 用于同一题型的不同表述，减少重复感
+  const othersName=j=>othersIdx(j).map(i=>labels[i]).join("、");
+  const allM=allModelList();
+  const otherIntrosAll=shuffleArr(allM.filter(x=>x.id!==m.id).map(x=>x.intro), rnd);
+  const hasCases=m.cases&&m.cases.length>0;
+  const GENERIC=["该要点在实际操作中可暂缓，并非本模型核心内容","可直接照搬其他模型的同类做法，无需区分"];
   const TYPES=[
-    (j,scn,v)=>({mode:"desc",
-      stem:["在「"+m.name+"」中，\""+labels[j]+"\"这一要点的含义是？",
-            "关于「"+m.name+"」的\""+labels[j]+"\"，下列说法最准确的是？"][v%2],
+    // A 概念记忆：要点含义
+    (j,scn,v)=>({stem:["在「"+m.name+"」中，\""+labels[j]+"\"这一要点的含义是？",
+                       "关于「"+m.name+"」的\""+labels[j]+"\"，下列说法最准确的是？"][v%2],
       pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
-      expl:"\""+labels[j]+"\"指："+descs[j]+"。其余选项为该模型的其他要点，不等同于本项。"}),
-    (j,scn,v)=>({mode:"desc",
-      stem:[""+scn+"。用「"+m.name+"」分析，下列做法中最符合\""+labels[j]+"\"这一要点的是？",
-            ""+scn+"。若以「"+m.name+"」的\""+labels[j]+"\"来改进，最贴切的做法是？"][v%2],
-      pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
-      expl:"在「"+scn+"」的情境下，\""+labels[j]+"\"（"+descs[j]+"）是最对路的切入点；其余为该模型的其他要点，不是本情境重点。"}),
-    (j,scn,v)=>({mode:"label",
-      stem:["下面这描述的是「"+m.name+"」中的哪一个要点？\n\""+descs[j]+"\"",
-            "「"+m.name+"」里，下列描述对应的是哪一个要点？\n\""+descs[j]+"\""][v%2],
+      expl:"【概念记忆】\""+labels[j]+"\"指："+descs[j]+"。其余选项为该模型的其他要点，含义不同，不能混为一谈。"}),
+    // B 要点识别
+    (j,scn,v)=>({stem:["下面这描述的是「"+m.name+"」中的哪一个要点？\n\""+descs[j]+"\"",
+                       "「"+m.name+"」里，下列描述对应的是哪一个要点？\n\""+descs[j]+"\""][v%2],
       pool:[labels[j], ...othersIdx(j).map(i=>labels[i])],
-      expl:"\""+descs[j]+"\"正是「"+m.name+"」中\""+labels[j]+"\"要点的内容；其余为该模型的其他要点名称。"}),
-    (j,scn,v)=>({mode:"desc",
-      stem:["运用「"+m.name+"」时，关于\""+labels[j]+"\"下列说法符合该模型的是？",
-            "按「"+m.name+"」的逻辑，对\""+labels[j]+"\"理解正确的是？"][v%2],
+      expl:"【要点识别】\""+descs[j]+"\"正是「"+m.name+"」中\""+labels[j]+"\"要点的内容；其余为该模型其他要点的名称。"}),
+    // C 场景应用
+    (j,scn,v)=>({stem:[scn+"。运用「"+m.name+"」分析，最符合\""+labels[j]+"\"这一要点的做法是？",
+                       scn+"。若以「"+m.name+"」的\""+labels[j]+"\"来改进，最贴切的做法是？"][v%2],
       pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
-      expl:"\""+labels[j]+"\"："+descs[j]+"。其余选项描述的是该模型其他要点，属于不同环节。"})
+      expl:"【为什么选这项】在「"+scn+"」的情境下，"+labels[j]+"（"+descs[j]+"）直击当前最紧迫的问题，是最对路的切入点。\n【为什么不选其他】其余选项（"+othersName(j)+"）属于该模型的其他要点，侧重不同环节，并非本情境的首要抓手。"}),
+    // D 概念理解
+    (j,scn,v)=>({stem:["运用「"+m.name+"」时，关于\""+labels[j]+"\"下列说法符合该模型的是？",
+                       "按「"+m.name+"」的逻辑，对\""+labels[j]+"\"理解正确的是？"][v%2],
+      pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
+      expl:"【概念理解】\""+labels[j]+"\"："+descs[j]+" 其余选项描述的是该模型其他要点，属于不同环节，不能张冠李戴。"}),
+    // E 模型定位记忆（整体概念）
+    (j,scn,v,job)=>{const foils=otherIntrosAll.slice((job.e||0)*3,(job.e||0)*3+3);
+      return {stem:["「"+m.name+"」这一模型，其核心思想 / 主要用途最接近下列哪句话？",
+                    "如果要一句话记住「"+m.name+"」，下面哪句最贴切？"][v%2],
+        pool:[m.intro, ...foils],
+        expl:"【模型定位】「"+m.name+"」的简介是："+m.intro+"——这才是本模型的核心定位。其余选项为其他模型的简介，容易混淆，需把模型与其用途对应记忆。"};},
+    // F 真实案例解析
+    (j,scn,v,job)=>{
+      if(hasCases){
+        const ci=job.ci % m.cases.length;
+        const cs=m.cases[ci];
+        return {stem:"【案例】"+cs.t+"："+cs.s+"\n依据「"+m.name+"」，此时最应侧重的是哪一项？",
+          pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
+          expl:"【为什么选这项】"+cs.a+" 落到本模型，"+labels[j]+"（"+descs[j]+"）正是该案例的关键。\n【为什么不选其他】其余要点（"+othersName(j)+"）虽属同模型，但侧重点不同，在本案例中并非首要。"};
+      }
+      return {stem:scn+"。依据「"+m.name+"」，此时最应优先把握的是？",
+        pool:[descs[j], ...othersIdx(j).map(i=>descs[i])],
+        expl:"【为什么选这项】「"+scn+"」情境下，"+labels[j]+"（"+descs[j]+"）最对路。其余为该模型其他要点，非本情境首要。"};}
   ];
-  const q=[];
-  for(let k=0;k<30;k++){
-    const j=k%N;
-    const b=Math.floor(k/N);
-    const typeIdx=b%TYPES.length;
-    const v=Math.floor(b/TYPES.length)%2;
-    const scn=SCENARIOS[k%SCENARIOS.length];
-    const g=TYPES[typeIdx](j,scn,v);
+  // 构造 30 题清单（与要点数 N 无关，恒为 30）：概念记忆/理解为主，案例少量但带"为什么"
+  const typePlan=[];
+  [['A',7],['B',4],['C',4],['D',6],['E',3],['F',6]].forEach(([t,c])=>{for(let i=0;i<c;i++)typePlan.push(t);});
+  const tp=shuffleArr(typePlan, rnd);            // 确定性打乱顺序
+  const TI={A:0,B:1,C:2,D:3,E:4,F:5};
+  const eIdx=tp.map((t,i)=>t==='E'?i:-1).filter(i=>i>=0);
+  const q=[]; let jc=0;
+  tp.forEach((type,idx)=>{
+    const j=(type==='E')?0:(jc++ % N);
+    const job={type, j, ci:idx, e:eIdx.indexOf(idx)};
+    const g=TYPES[TI[type]](j, SCENARIOS[(idx*3)%SCENARIOS.length], idx%2, job);
     let pool=g.pool.slice(0,4);
-    if(pool.length<4){
-      const gen=g.mode==="label"?GENERIC_LABEL:GENERIC_DESC;
-      let gi=0; while(pool.length<4 && gi<gen.length) pool.push(gen[gi++]);
-    }
+    if(pool.length<4){let gi=0;while(pool.length<4&&gi<GENERIC.length)pool.push(GENERIC[gi++]);}
     const correctText=pool[0];
     const opts=shuffleArr(pool,rnd);
     const a=opts.indexOf(correctText);
     q.push({q:g.stem, o:opts, a:a, e:g.expl});
-  }
+  });
   return q;
 }
 
