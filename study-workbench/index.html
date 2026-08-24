@@ -1160,6 +1160,9 @@ function selectCat(cat){
   if(sidebar) sidebar.innerHTML="";
   renderContent();
   setActiveTask(cat);
+  // 选中模块后自动隐藏任务栏，呈现干净学习界面（用户偏好：无需手动收起）
+  localStorage.setItem("swb_rail_hidden","1");
+  applyRail();
 }
 
 /* ---- 侧栏（仅模型板块用） ---- */
