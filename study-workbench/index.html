@@ -14,7 +14,7 @@
 <style>
   :root{
     --bg:#f5f7fb; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
-    --mgmt:#2563eb; --psy:#db2777; --grow:#059669;
+    --mgmt:#2563eb; --psy:#db2777; --grow:#059669; --mkt:#ea580c;
     --shadow:0 6px 22px rgba(17,24,39,.08);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -141,6 +141,7 @@
   .task[data-cat="management"].active{background:var(--mgmt)}
   .task[data-cat="psychology"].active{background:var(--psy)}
   .task[data-cat="growth"].active{background:var(--grow)}
+  .task[data-cat="marketing"].active{background:var(--mkt)}
   .task[data-cat="errors"].active{background:#dc2626}
 
   .welcome{text-align:center;padding:50px 16px;color:var(--muted)}
@@ -346,6 +347,7 @@ const CATS = [
   {key:"management",  name:"管理模型", icon:"🏢", color:"var(--mgmt)"},
   {key:"psychology",  name:"心理模型", icon:"🧠", color:"var(--psy)"},
   {key:"growth",      name:"成长模型",   icon:"🌱", color:"var(--grow)"},
+  {key:"marketing",   name:"营销策略", icon:"📈", color:"var(--mkt)"},
   {key:"errors",      name:"错题集",     icon:"❌", color:"#dc2626"},
   {key:"cards",       name:"学习卡片",   icon:"🗂️", color:"#7c3aed"}
 ];
@@ -782,7 +784,95 @@ const PSY = [
     cases:[{t:"案例：新同事变好友",s:"从午饭话题到周末趣事再到家庭压力。",a:"关系按层递进、互相暴露，信任才扎实不突兀。"}] }
 ];
 
-/* ============ 模型详解（每个模型的详细说明，渲染“模型详解”卡片） ============ */
+/* ---------- 营销策略：营销战略 + 大客户/场景销售（共16） ---------- */
+const MARKETING = [
+  { id:"stp", name:"STP 战略定位", tag:"细分-目标-定位", icon:"🎯",
+    intro:"STP 是现代营销战略的核心框架：先把市场按需求差异细分为若干子市场(Segmentation)，再选最有吸引力、自身最能服务的目标市场(Targeting)，最后在顾客心智中建立差异化定位(Positioning)。它回答『服务谁、靠什么赢』。",
+    points:[{h:"市场细分 S",p:"按地理/人口/行为等切分子市场。"},{h:"目标市场 T",p:"评估规模与匹配度后选定。"},{h:"差异化定位 P",p:"在心智中占据独特位置。"},{h:"三环一致",p:"细分-目标-定位要连贯。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：元气森林气泡水",s:"细分无糖健康人群，目标都市年轻白领，定位『0糖0脂0卡』高端气泡水。",a:"先选人再占位，避开与传统可乐正面拼规模。"}] },
+  { id:"fourp", name:"4P 营销组合", tag:"产品-价格-渠道-促销", icon:"🧩",
+    intro:"麦卡锡提出的经典营销组合：企业可控的四类变量——产品(Product)、价格(Price)、渠道(Place)、促销(Promotion)。制定策略时四者必须协同，缺一不可。",
+    points:[{h:"产品 Product",p:"满足需求的核心价值。"},{h:"价格 Price",p:"价值与利润的杠杆。"},{h:"渠道 Place",p:"如何让顾客买得到。"},{h:"促销 Promotion",p:"沟通与促成转化。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：小米手机",s:"高配产品+极致性价比定价+线上直销渠道+口碑社媒促销四者协同。",a:"4P 不是四张清单，而是围绕同一人群的一次性设计。"}] },
+  { id:"fourc", name:"4C 营销理论", tag:"顾客视角营销", icon:"🔄",
+    intro:"4C 是对 4P 的顾客视角升级：顾客(Customer，真实需求而非产品)、成本(Cost，顾客总拥有成本而非标价)、便利(Convenience，购买便捷性)、沟通(Communication，双向互动而非单向促销)。提醒企业从『我想卖什么』转向『顾客要什么』。",
+    points:[{h:"顾客 Customer",p:"从真实需求出发。"},{h:"成本 Cost",p:"顾客的总代价非标价。"},{h:"便利 Convenience",p:"易买易用降低门槛。"},{h:"沟通 Communication",p:"双向对话而非喊话。"}],
+    chart:{type:"split", groups:[
+      {t:"4P 视角",items:["产品 Product","价格 Price","渠道 Place","促销 Promotion"]},
+      {t:"4C 视角",items:["顾客 Customer","成本 Cost","便利 Convenience","沟通 Communication"]} ]},
+    cases:[{t:"案例：便利店 vs 大卖场",s:"便利店用『便利』补足价格劣势，正合 4C。",a:"同样的品类，换顾客视角就能另辟赛道。"}] },
+  { id:"aida", name:"AIDA 模型", tag:"注意-兴趣-欲望-行动", icon:"🪤",
+    intro:"AIDA 描述消费者从接触信息到购买的心理链路：注意(Attention)→兴趣(Interest)→欲望(Desire)→行动(Action)。做内容、落地页、销售话术时，要依次为每一环设计钩子。",
+    points:[{h:"注意 Attention",p:"先被看见、被记住。"},{h:"兴趣 Interest",p:"想进一步了解。"},{h:"欲望 Desire",p:"产生『想要拥有』。"},{h:"行动 Action",p:"下单或留资。"}],
+    chart:{type:"flow"},
+    cases:[{t:"案例：电商详情页",s:"主图抓注意、卖点激兴趣、场景唤欲望、限时优惠促行动。",a:"每一屏都对应链路一环，缺一环就掉单。"}] },
+  { id:"aarrr", name:"AARRR 增长模型", tag:"获客-激活-留存-收入-推荐", icon:"🏴‍☠️",
+    intro:"AARRR（海盗指标）是用户增长漏斗：获取(Acquisition)→激活(Activation)→留存(Retention)→收入(Revenue)→推荐(Referral)。各环节用指标量化，找到流失最大的『漏水点』优先补漏。",
+    points:[{h:"获取 Acquisition",p:"拉新与曝光。"},{h:"激活 Activation",p:"首次获得价值体验。"},{h:"留存 Retention",p:"持续回来使用。"},{h:"收入 Revenue",p:"完成变现。"},{h:"推荐 Referral",p:"自发带来新客。"}],
+    chart:{type:"flow"},
+    cases:[{t:"案例：Dropbox",s:"靠『邀请好友得空间』把推荐(Referral)做成增长引擎。",a:"在漏斗末端装一个自传播开关，获客成本骤降。"}] },
+  { id:"rfm", name:"RFM 客户分层", tag:"最近-频次-金额", icon:"💎",
+    intro:"RFM 用三个维度给客户打分分层：最近一次消费(Recency，越近越活跃)、消费频率(Frequency，越高越忠诚)、消费金额(Monetary，越高越值钱)。据此把客户分为重要价值、重要保持、重要发展、一般挽留等，差异化运营。",
+    points:[{h:"R 最近 Recency",p:"活跃度信号。"},{h:"F 频次 Frequency",p:"忠诚度信号。"},{h:"M 金额 Monetary",p:"贡献度信号。"},{h:"分层运营",p:"按组合打标签施策。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：电商会员",s:"R近F高M高=核心客户重点维护；R远F低=沉睡待唤醒。",a:"同一批客户，分层后 ROI 差异巨大。"}] },
+  { id:"positioning", name:"定位理论", tag:"抢占心智第一", icon:"🧠",
+    intro:"特劳特与里斯提出：商业竞争发生在顾客心智中而非市场。品牌要在某一品类里占据一个『第一』或鲜明差异的位置（如『安全=沃尔沃』），并围绕它配置所有资源。做不出差异就做不出记忆点。",
+    points:[{h:"心智有限",p:"顾客记不住太多品牌。"},{h:"抢占第一",p:"数一数二才有位置。"},{h:"鲜明差异",p:"一词占据一个特性。"},{h:"配称一致",p:"所有动作服务定位。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：王老吉",s:"定位『怕上火』占据凉茶第一心智。",a:"把抽象功能压缩成一个词，省下大把教育成本。"}] },
+  { id:"ansoff", name:"安索夫增长矩阵", tag:"产品×市场四象限", icon:"🧭",
+    intro:"安索夫矩阵用『现有/新产品 × 现有/新市场』给出四条增长路径：市场渗透、市场开发、产品开发、多元化。帮助企业系统化选择增长方向并评估风险（右下角多元化风险最高）。",
+    points:[{h:"市场渗透",p:"老产品老市场提份额。"},{h:"市场开发",p:"老产品进新市场。"},{h:"产品开发",p:"新产品攻老市场。"},{h:"多元化",p:"新产品新市场，风险最高。"}],
+    chart:{type:"matrix", quad:[
+      {t:"市场渗透",c:"#16a34a",d:"提份额"},{t:"产品开发",c:"#0ea5e9",d:"推新品"},
+      {t:"市场开发",c:"#f59e0b",d:"拓市场"},{t:"多元化",c:"#dc2626",d:"高风险"} ]},
+    cases:[{t:"案例：奶茶品牌出海",s:"同产品进新国家=市场开发；推新品线=产品开发。",a:"先选低风险的相邻格子，别一上来就多元化。"}] },
+  { id:"spin", name:"SPIN 大客户销售法", tag:"大客户提问四步", icon:"❓",
+    intro:"尼尔·雷克汉姆研究大客户销售提出 SPIN：通过四类提问引导客户自己认识到问题的代价与解决价值——背景(Situation)、难点(Problem)、暗示(Implication)、需求-效益(Need-payoff)。越是大单，越要靠提问让客户『自己说服自己』。",
+    points:[{h:"S 背景 Situation",p:"了解客户现状与事实。"},{h:"P 难点 Problem",p:"确认具体痛点。"},{h:"I 暗示 Implication",p:"放大不解决的后果。"},{h:"N 需求效益",p:"凸显方案带来的价值。"}],
+    chart:{type:"flow"},
+    cases:[{t:"案例：ERP 大单",s:"不问『买不买』，而问『现在流程错单造成多少损失』(暗示)，再问『若损失减半值不值』(需求效益)。",a:"让客户自己算清代价，比推销管用十倍。"}] },
+  { id:"meddic", name:"MEDDIC 大单资格", tag:"大客户赢单六要素", icon:"🔑",
+    intro:"MEDDIC 是 B2B 大客户销售的过程资格框架，用来判断一个商机是否『健康可赢』：指标(Metrics，可量化收益)、经济买家(Economic Buyer，有预算拍板人)、决策标准(Decision Criteria)、决策流程(Decision Process)、识别痛点(Identify Pain)、内部教练(Champion)。六要素缺一个，单子就悬。",
+    points:[{h:"M 指标 Metrics",p:"可量化的业务收益。"},{h:"E 经济买家",p:"有预算的拍板人。"},{h:"D 决策标准",p:"客户选型依据。"},{h:"D 决策流程",p:"审批与采购链路。"},{h:"I 识别痛点",p:"真实且迫切的痛。"},{h:"C 教练 Champion",p:"内部坚定支持者。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：SaaS 百万年单",s:"锁定 CFO 为经济买家、HRD 为教练，量化『招聘成本降30%』指标，循决策流程推进。",a:"六要素齐了，赢单才从『碰运气』变『可管理』。"}] },
+  { id:"consult", name:"顾问式销售", tag:"先诊断后开方", icon:"🩺",
+    intro:"顾问式销售把销售从『推销产品』变成『解决客户问题』：先建立信任、深度诊断需求与业务目标，再量身给方案，把自身定位成可信赖的顾问而非供货商。适合高客单价、长周期、复杂决策。",
+    points:[{h:"建立信任",p:"专业+共情打底。"},{h:"诊断需求",p:"问清业务目标。"},{h:"量身方案",p:"非标准话术堆砌。"},{h:"长期伙伴",p:"卖完仍在身边。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：企业咨询签单",s:"先免费诊断出客户库存周转问题，再给定制化系统，成交自然。",a:"先当医生再当药房，客户才信你。"}] },
+  { id:"solution", name:"解决方案销售", tag:"卖结果不卖功能", icon:"🧰",
+    intro:"解决方案销售（Solution Selling）主张面向『痛点-原因-代价-价值』四要素销售：先确认客户的痛点与成因、算清不解决的代价，再展示方案带来的可量化价值，让客户为『结果』买单而非为『功能』买单。",
+    points:[{h:"痛点 Pain",p:"必须解决的事。"},{h:"成因 Cause",p:"问题的根因。"},{h:"代价 Cost",p:"不做的损失有多大。"},{h:"价值 Value",p:"方案带来的回报。"}],
+    chart:{type:"flow"},
+    cases:[{t:"案例：设备厂商",s:"讲『停机每小时亏8万』(代价)，而非罗列参数，订单顺。",a:"客户为省下的钱付费，不为你的参数付费。"}] },
+  { id:"challenger", name:"挑战式销售", tag:"教导-定制-掌控", icon:"🦁",
+    intro:"《挑战式销售》研究发现：在复杂 B2B 销售中，『教导者』型销售(Challenger)胜率最高。他们用三招——教导(Teaching，给客户新视角)、定制(Tailoring，贴合客户业务)、掌控(Taking control，自信引导决策)——而非一味讨好。",
+    points:[{h:"教导 Teaching",p:"提供新的行业洞察。"},{h:"定制 Tailoring",p:"贴合客户业务语境。"},{h:"掌控 Control",p:"自信引导决策。"},{h:"商业洞察",p:"懂客户所在行业。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：工业品销售",s:"先教客户『你们成本结构算错了』，再给方案，反而赢得尊重与订单。",a:"敢挑战客户认知，比迎合更容易被记住。"}] },
+  { id:"valuesell", name:"价值销售", tag:"用数字证明值得", icon:"📐",
+    intro:"价值销售（Value Selling）强调在销售全程用可量化的业务价值说话：在发现阶段就帮客户算清『投资回报(ROI)』与『总拥有成本(TCO)』，把价格谈判转化为价值论证，让客户觉得『贵得有理』。",
+    points:[{h:"量化收益",p:"帮客户算清 ROI。"},{h:"对比 TCO",p:"算总拥有成本。"},{h:"价值证明",p:"用案例数据支撑。"},{h:"价格=价值",p:"把议价变论证。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：软件报价偏高",s:"展示『一年省200万运维』的 ROI，客户接受溢价。",a:"先立住价值，价格就不再刺眼。"}] },
+  { id:"pipeline", name:"销售漏斗与管道", tag:"阶段-转化-预测", icon:"🫗",
+    intro:"销售漏斗(Pipeline)把销售过程切为阶段（如线索→商机→方案→谈判→成交），逐层转化；用各阶段数量与转化率预测业绩、定位卡点。管理者据此分配资源，销售据此把握推进节奏。",
+    points:[{h:"阶段切分",p:"统一销售流程。"},{h:"转化率",p:"逐层漏水多少。"},{h:"预测 Forecast",p:"加权推算业绩。"},{h:"卡点诊断",p:"哪层掉单最多。"}],
+    chart:{type:"pyramid", levels:[{l:"线索",s:"最大入口"},{l:"商机",s:"初步合格"},{l:"方案",s:"已出方案"},{l:"谈判",s:"临门一脚"},{l:"成交",s:"最小出口"}]},
+    cases:[{t:"案例：季度业绩预测",s:"谈判阶段3单×赢率50%=预计1.5单，提前补缺。",a:"漏斗不只看结果，更能提前看出差距。"}] },
+  { id:"clv", name:"CLV 与客户成功", tag:"长期价值经营", icon:"🔁",
+    intro:"CLV（Customer Lifetime Value）衡量一个客户在整个关系期内带来的总利润。它提醒：获客成本(CAC)应小于 CLV；与其不断拉新，不如用『客户成功』提升续费与增购，把一次性买卖变成长期现金流。",
+    points:[{h:"CLV 计算",p:"长期的客户利润。"},{h:"CAC 对比",p:"获客成本要更低。"},{h:"客户成功",p:"提升续费与增购。"},{h:"口碑裂变",p:"老客户带来新客。"}],
+    chart:{type:"bar"},
+    cases:[{t:"案例：订阅制 SaaS",s:"盯 NPS 与续费率，用客户成功把 CLV 做大，而非只冲新签。",a:"留得住的客户，才是一台印钞机。"}] }
+];
+
+/* ============ 模型详解（每个模型的详细说明，渲染"模型详解"卡片） ============ */
 const DETAILS = {
   /* ---- 管理学 · 战略与竞争分析 ---- */
   "fiveforces":"波特五力由迈克尔·波特于1979年提出，用于判断一个行业的长期盈利潜力。它认为行业利润被五种竞争力量共同挤压：上游供应商、下游购买者、潜在进入者、替代品，以及现有竞争者之间的厮杀。分析时应逐项评估'谁的议价能力强、哪个力量在恶化'，从而找到最薄弱的环节去规避或建立壁垒。注意：五力是行业结构分析，不等于企业自身战略，需结合内部能力一起看。",
@@ -992,7 +1082,8 @@ const CARDS = [
 const MODELS = {
   management: MGMT.subcats.flatMap(s=>s.models.map(m=>({...m, subcat:s.name}))),
   psychology: PSY,
-  growth: GROWTH
+  growth: GROWTH,
+  marketing: MARKETING
 };
 
 /* ============ 图表渲染 ============ */
@@ -1534,7 +1625,7 @@ function renderContent(){
   content.innerHTML=`
     <div class="topback"><button class="tb-btn" id="tbBack">‹ 返回</button><span class="tb-crumb">${crumbTxt}</span></div>
     <div class="m-title">${m.icon} ${m.name}
-      <span class="m-tag" style="background:var(${state.cat==='management'?'--mgmt':state.cat==='psychology'?'--psy':'--grow'})1a;color:var(${state.cat==='management'?'--mgmt':state.cat==='psychology'?'--psy':'--grow'})">${m.tag}</span>
+      <span class="m-tag" style="background:var(${state.cat==='management'?'--mgmt':state.cat==='psychology'?'--psy':state.cat==='growth'?'--grow':'--mkt'})1a;color:var(${state.cat==='management'?'--mgmt':state.cat==='psychology'?'--psy':state.cat==='growth'?'--grow':'--mkt'})">${m.tag}</span>
     </div>
     <p class="m-intro">${m.intro}</p>
     <div class="tabs">
