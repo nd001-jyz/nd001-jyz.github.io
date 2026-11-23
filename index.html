@@ -1277,12 +1277,23 @@ VIEWS.grow=function(){
   const todayList=growLog[t]||[];
   const allDates=growAllDates();
   const doneToday=todayList.length;
-  let bestStreak=0, totalTimes=0;
+  let bestStreak=0;
   GROW_ITEMS.forEach(function(it){
-    totalTimes+=growDays(it.k);
     const s=growBest(it.k);
     if(s>bestStreak)bestStreak=s;
   });
+  /* 最近一次打卡距今几天 */
+  const lastDate=allDates.length?allDates[allDates.length-1]:'';
+  let lastLabel='—',lastColor='';
+  if(lastDate){
+    if(lastDate===t){lastLabel='今天';lastColor='var(--good)';}
+    else{
+      const dp=lastDate.split('-').map(Number);
+      const dd=Math.floor((new Date(t.split('-')[0],t.split('-')[1]-1,t.split('-')[2])-new Date(dp[0],dp[1]-1,dp[2]))/86400000);
+      lastLabel=dd<=1?'昨天':dd+' 天前';
+      if(dd>3)lastColor='#E06B5C';
+    }
+  }
 
   let h='<div class="banner"><div class="big">📏 长高计划</div>'+
     '<div class="muted">每天 5 项长高打卡，坚持都有数据记录。累计坚持 <b>'+allDates.length+'</b> 天，今天完成 <b>'+doneToday+'/5</b> 项。</div></div>';
@@ -1292,7 +1303,7 @@ VIEWS.grow=function(){
     '<div class="gstat" style="flex:1;min-width:90px"><div class="gn">'+allDates.length+' 天</div><div class="gl">累计打卡</div></div>'+
     '<div class="gstat" style="flex:1;min-width:90px"><div class="gn">'+doneToday+'/5</div><div class="gl">今日完成</div></div>'+
     '<div class="gstat" style="flex:1;min-width:90px"><div class="gn">'+bestStreak+' 天</div><div class="gl">最长连续</div></div>'+
-    '<div class="gstat" style="flex:1;min-width:90px"><div class="gn">'+totalTimes+' 次</div><div class="gl">累计项次</div></div>'+
+    '<div class="gstat" style="flex:1;min-width:90px"><div class="gn"'+(lastColor?' style="color:'+lastColor+'"':'')+'>'+lastLabel+'</div><div class="gl">最近打卡</div></div>'+
     '</div>';
 
   if(doneToday>=5){
