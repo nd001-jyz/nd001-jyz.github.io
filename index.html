@@ -451,6 +451,7 @@ const GROW_ITEMS=[
   {k:"baduanjin",n:"八段锦",         e:"🌿", desc:"传统养生功法，调理气血、舒展筋骨"}
 ];
 const GROW_GOAL=30;   /* 每项默认目标天数，用于进度条 */
+const GROW_PASS='6666';   /* 补登记家长密码：忘了打卡的日子，输密码才能补录 */
 
 const BOOKS = {
  cn:[
@@ -1299,6 +1300,11 @@ VIEWS.grow=function(){
       '<div class="muted">太棒了，坚持下去个子一定蹭蹭长！</div></div>';
   }
 
+  /* 补登记入口：做了运动但忘了当天点，家长输密码补录以前的记录 */
+  h+='<div class="row" style="margin-bottom:12px;align-items:center">'+
+    '<button class="btn ghost sm" data-act="grow-backfill">✏️ 补登记（忘了打卡？）</button>'+
+    '<span class="muted" style="font-size:12px">补录以前的记录需要家长密码</span></div>';
+
   /* 核心：每项坚持天数 */
   h+='<div class="card"><h3>🏆 每项坚持天数</h3>'+
     '<div class="muted" style="margin-bottom:10px">点左边圆圈记录今天这一项，右边大数字是这项累计坚持的天数。</div><ul class="list">';
@@ -1782,6 +1788,59 @@ document.addEventListener('click',function(e){
       addStars(1,gname,'grow');
     }
     save('growLog',growLog);go('grow');
+  }
+  else if(act==='grow-backfill'){
+    var gbItemsHtml=function(gd){
+      const grec=growLog[gd]||[];
+      return GROW_ITEMS.map(function(it){
+        const ghad=grec.indexOf(it.k)>=0;
+        return '<label style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:#fff;font-weight:600;font-size:14px;cursor:pointer">'+
+          '<input type="checkbox" class="gbitem" data-k="'+it.k+'" style="width:19px;height:19px;flex:0 0 19px"'+(ghad?' checked':'')+'>'+
+          '<span>'+it.e+' '+esc(it.n)+'</span>'+
+          (ghad?'<span class="pill star" style="margin-left:auto">✓ 已登记</span>':'')+
+          '</label>';
+      }).join('');
+    }
+    openModal('✏️ 补登记长高打卡',
+      '<div class="muted" style="margin-bottom:10px">孩子做了运动但忘了当天点？在这里补录以前的记录。补录后照常计入坚持天数和金豆（金豆流水会注明“补记”）。</div>'+
+      '<div class="field"><label>补登记哪一天（只能选过去的日子）</label><input id="gbd" type="date" value="'+growDateStr(1)+'" max="'+growDateStr(1)+'"></div>'+
+      '<div class="field"><label>这一天的 5 项完成情况（勾了=已打卡）</label><div id="gbitems">'+gbItemsHtml(growDateStr(1))+'</div></div>'+
+      '<div class="field"><label>家长密码</label><input id="gbp" type="password" placeholder="请输入密码" autocomplete="off"></div>'+
+      '<div class="modalacts"><button class="btn ghost" onclick="closeModal()">取消</button>'+
+      '<button class="btn" id="gbsave">确认补登记</button></div>',
+      function(card){
+        const dInp=card.querySelector('#gbd');
+        dInp.addEventListener('change',function(){
+          card.querySelector('#gbitems').innerHTML=gbItemsHtml(dInp.value);
+        });
+        card.querySelector('#gbsave').onclick=function(){
+          const gd=dInp.value;
+          const gpw=card.querySelector('#gbp').value;
+          if(!gd){toast('请选择要补登记的日期');return;}
+          if(gd>=today()){toast('今天请直接在列表里打卡，补登记只能补过去的日子');return;}
+          if(gpw!==GROW_PASS){toast('密码不对，无法补登记');return;}
+          let gAdd=0,gDel=0;
+          card.querySelectorAll('.gbitem').forEach(function(cb){
+            const gk2=cb.dataset.k;
+            const it2=GROW_ITEMS.find(function(x){return x.k===gk2;});
+            const ghad=(growLog[gd]||[]).indexOf(gk2)>=0;
+            if(cb.checked===ghad)return;
+            const greason='长高计划·'+it2.n+'（补记 '+(parseInt(gd.slice(5,7),10))+'/'+(parseInt(gd.slice(8,10),10))+'）';
+            if(cb.checked){
+              growLog[gd]=(growLog[gd]||[]).concat([gk2]);
+              addStars(1,greason,'grow');gAdd++;
+            }else{
+              growLog[gd]=growLog[gd].filter(function(x){return x!==gk2;});
+              setStars(stars-1);removeBeanLog(greason,'grow');gDel++;
+            }
+            if(!growLog[gd].length)delete growLog[gd];
+          });
+          save('growLog',growLog);
+          closeModal();go('grow');
+          if(gAdd||gDel)toast('补登记完成：新增 '+gAdd+' 项'+(gDel?('，取消 '+gDel+' 项'):''));
+          else toast('这一天的记录没有变化');
+        };
+      });
   }
   else if(act==='add-reading'){
     openModal('记录阅读打卡',
