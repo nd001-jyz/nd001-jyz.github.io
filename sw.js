@@ -1,4 +1,4 @@
-const CACHE = 'naidou-v22';
+const CACHE = 'naidou-v23';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './sw.js', './hanzi-data.js', './poems-data.js', './idioms-data.js', './en-data.js', './icon-192.png', './icon-512.png', './icon.svg'];
 
 self.addEventListener('install', event => {
